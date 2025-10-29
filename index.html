@@ -10,32 +10,58 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Load Sortable.js for Drag-and-Drop -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
     <style>
         /* Apply the Inter font family */
         body {
             font-family: 'Inter', sans-serif;
         }
         /* Custom scrollbar for the log */
-        .log-container::-webkit-scrollbar {
+        .log-container::-webkit-scrollbar,
+        #trialList::-webkit-scrollbar {
             width: 8px;
         }
-        .log-container::-webkit-scrollbar-track {
+        .log-container::-webkit-scrollbar-track,
+        #trialList::-webkit-scrollbar-track {
             background: #f1f5f9; /* gray-100 */
             border-radius: 10px;
         }
-        .log-container::-webkit-scrollbar-thumb {
+        .log-container::-webkit-scrollbar-thumb,
+        #trialList::-webkit-scrollbar-thumb {
             background: #94a3b8; /* gray-400 */
             border-radius: 10px;
         }
-        .log-container::-webkit-scrollbar-thumb:hover {
+        .log-container::-webkit-scrollbar-thumb:hover,
+        #trialList::-webkit-scrollbar-thumb:hover {
             background: #64748b; /* gray-500 */
         }
+        
         /* Styles for the confirmation modal */
         #confirmationModal {
             transition: opacity 0.2s ease-in-out;
         }
         #modalContent {
             transition: transform 0.2s ease-in-out;
+        }
+        
+        /* Styles for new sortable list */
+        .trial-item {
+            transition: background-color 0.1s ease-in-out;
+        }
+        
+        /* Style for the selected trial */
+        .trial-item.selected {
+            background-color: #3b82f6; /* blue-500 */
+            color: white;
+            font-weight: 500;
+        }
+        
+        /* Style for the item being dragged (Sortable.js class) */
+        .sortable-ghost {
+            background-color: #dbeafe; /* blue-100 */
+            opacity: 0.7;
+            border-radius: 0.5rem; /* rounded-lg */
         }
     </style>
 </head>
@@ -48,16 +74,14 @@
 
         <!-- Trial Selection and Custom Tag Input -->
         <div class="mb-6">
-            <label for="trialSelector" class="block text-sm font-medium text-gray-700 mb-2">
-                1. Select Trial
+            <label for="trialList" class="block text-sm font-medium text-gray-700 mb-2">
+                1. Select Trial (Click to select, Drag to re-order)
             </label>
-            <!-- Dropdown -->
-            <div class="flex flex-col sm:flex-row gap-3">
-                <select id="trialSelector" class="flex-grow block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    <!-- Options will be populated by JS -->
-                </select>
-            </div>
-
+            <!-- Sortable List (replaces dropdown) -->
+            <ul id="trialList" class="w-full max-h-48 overflow-y-auto border border-gray-300 rounded-lg bg-white shadow-sm disabled:opacity-50 disabled:bg-gray-50">
+                <!-- Trial items will be populated by JS -->
+            </ul>
+            
             <!-- Notes Input -->
             <div class="mt-3">
                 <label for="notesInput" class="block text-sm font-medium text-gray-700 mb-2">
@@ -65,17 +89,7 @@
                 </label>
                 <textarea id="notesInput" rows="3" placeholder="Enter notes for this trial..." class="block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:bg-gray-50"></textarea>
             </div>
-
-            <!-- Re-order Buttons -->
-            <div class="flex gap-3 mt-4">
-                <button id="moveUpButton" class="w-full px-4 py-2 bg-gray-200 text-gray-700 font-medium rounded-lg shadow-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
-                    Move Tag Up
-                </button>
-                <button id="moveDownButton" class="w-full px-4 py-2 bg-gray-200 text-gray-700 font-medium rounded-lg shadow-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
-                    Move Tag Down
-                </button>
-            </div>
-
+            
             <!-- Add/Remove Tag -->
             <div class="flex flex-col sm:flex-row gap-3 mt-4">
                 <input type="text" id="customTagInput" placeholder="Type new tag name..." class="flex-grow block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:bg-gray-50">
@@ -169,6 +183,7 @@
             let logData = [];
             let isTiming = false;
             let currentTrialName = '';
+            let selectedTrialElement = null; // Holds the currently selected <li>
             // Use an Array to maintain order
             let trialNames = [
                 'OFF_30s_T1',
@@ -185,18 +200,17 @@
             const startButton = document.getElementById('startButton');
             const stopButton = document.getElementById('stopButton');
             const exportButton = document.getElementById('exportButton');
-            const trialSelector = document.getElementById('trialSelector');
-            const notesInput = document.getElementById('notesInput'); // New notes field
+            const trialList = document.getElementById('trialList'); // New <ul>
+            const notesInput = document.getElementById('notesInput');
             const customTagInput = document.getElementById('customTagInput');
             const addTagButton = document.getElementById('addTagButton');
             const removeTagButton = document.getElementById('removeTagButton');
-            const moveUpButton = document.getElementById('moveUpButton');
-            const moveDownButton = document.getElementById('moveDownButton');
+            // 'Move Up' and 'Move Down' buttons are removed
             const discardLastButton = document.getElementById('discardLastButton');
             const resetLogButton = document.getElementById('resetLogButton');
             const logBody = document.getElementById('logBody');
             const emptyLogMessage = document.getElementById('emptyLogMessage');
-
+            
             // Modal Elements
             const confirmationModal = document.getElementById('confirmationModal');
             const modalContent = document.getElementById('modalContent');
@@ -204,58 +218,94 @@
             const confirmResetButton = document.getElementById('confirmResetButton');
 
             // --- FUNCTIONS ---
-
-            /**
-             * Shows the confirmation modal
-             */
+            
             function showModal() {
                 confirmationModal.classList.remove('hidden');
                 setTimeout(() => {
                      confirmationModal.classList.remove('opacity-0');
                      modalContent.classList.remove('scale-95');
-                }, 10); // Start transition
+                }, 10);
             }
-
-            /**
-             * Hides the confirmation modal
-             */
+            
             function hideModal() {
                 confirmationModal.classList.add('opacity-0');
                 modalContent.classList.add('scale-95');
                 setTimeout(() => {
                     confirmationModal.classList.add('hidden');
-                }, 200); // Wait for transition to end
+                }, 200);
             }
 
             /**
-             * Populates the trial selector dropdown from the trialNames Array
+             * Handles clicking on a trial item in the list
+             * @param {Event} e - The click event
              */
-            function populateSelector() {
-                const selectedValue = trialSelector.value;
-                trialSelector.innerHTML = ''; // Clear existing options
+            function handleTrialClick(e) {
+                if (isTiming) return; // Don't allow changing selection while timing
+                
+                const clickedItem = e.currentTarget; // Get the <li> that was clicked
 
-                trialNames.forEach(name => {
-                    const option = document.createElement('option');
-                    option.value = name;
-                    option.textContent = name;
-                    trialSelector.appendChild(option);
-                });
-
-                // Try to re-select the previously selected value
-                if (trialNames.includes(selectedValue)) {
-                    trialSelector.value = selectedValue;
+                // Remove 'selected' from previously selected item
+                if (selectedTrialElement) {
+                    selectedTrialElement.classList.remove('selected');
                 }
-
-                // Update button states after population, as it affects move/remove buttons
+                
+                // Add 'selected' to the new item
+                clickedItem.classList.add('selected');
+                selectedTrialElement = clickedItem;
+                
                 updateButtonStates();
             }
 
             /**
-             * Renders the logData array into the HTML table
+             * Creates a single trial list item
+             * @param {string} name - The text content for the trial
+             * @returns {HTMLLIElement}
              */
-            function renderLog() {
-                logBody.innerHTML = ''; // Clear existing log
+            function createTrialItem(name) {
+                const li = document.createElement('li');
+                li.className = 'trial-item p-3 hover:bg-gray-100 cursor-pointer border-b last:border-b-0';
+                li.textContent = name;
+                li.draggable = true; // Required for Sortable.js
+                li.addEventListener('click', handleTrialClick);
+                return li;
+            }
 
+            /**
+             * Populates the trial list from the trialNames Array
+             */
+            function populateTrialList(selectName = null) {
+                trialList.innerHTML = ''; // Clear existing options
+                
+                trialNames.forEach(name => {
+                    const li = createTrialItem(name);
+                    trialList.appendChild(li);
+                    
+                    if (name === selectName) {
+                        li.click(); // Select this item
+                    }
+                });
+
+                // Select first item if nothing else is selected
+                if (!selectedTrialElement && trialList.firstChild) {
+                    trialList.firstChild.click();
+                }
+                
+                updateButtonStates();
+            }
+
+            /**
+             * Updates the trialNames array to match the DOM order after drag/drop
+             */
+            function updateTrialNamesFromDOM() {
+                trialNames = [];
+                const items = trialList.querySelectorAll('li.trial-item');
+                items.forEach(item => trialNames.push(item.textContent));
+                // Note: The 'selected' item remains the same, just its position changes.
+            }
+
+            function renderLog() {
+                logBody.innerHTML = ''; 
+                
                 if (logData.length === 0) {
                     emptyLogMessage.classList.remove('hidden');
                     exportButton.disabled = true;
@@ -266,150 +316,119 @@
 
                 logData.forEach(entry => {
                     const row = document.createElement('tr');
-
-                    const cellTrial = document.createElement('td');
-                    cellTrial.className = 'px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900';
-                    cellTrial.textContent = entry.trial;
-
-                    const cellEvent = document.createElement('td');
-                    cellEvent.className = 'px-6 py-4 whitespace-nowrap text-sm';
-                    cellEvent.textContent = entry.event;
-                    // Add color to event
-                    if (entry.event === 'Start') {
-                        cellEvent.classList.add('text-green-600', 'font-semibold');
-                    } else if (entry.event === 'Stop') {
-                        cellEvent.classList.add('text-red-600', 'font-semibold');
-                    }
-
-                    // New Cell for Notes
-                    const cellNotes = document.createElement('td');
-                    cellNotes.className = 'px-6 py-4 whitespace-nowrap text-sm text-gray-700';
-                    cellNotes.textContent = entry.notes || ''; // Handle undefined/null notes
-
-                    const cellTimestamp = document.createElement('td');
-                    cellTimestamp.className = 'px-6 py-4 whitespace-nowrap text-sm text-gray-600';
-                    cellTimestamp.textContent = entry.timestamp;
-
-                    row.appendChild(cellTrial);
-                    row.appendChild(cellEvent);
-                    row.appendChild(cellNotes); // Add notes cell to row
-                    row.appendChild(cellTimestamp);
+                    
+                    row.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${entry.trial}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm ${entry.event === 'Start' ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}">${entry.event}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${entry.notes || ''}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">${entry.timestamp}</td>
+                    `;
                     logBody.appendChild(row);
                 });
-
-                // Update states that depend on log length
+                
                 updateButtonStates();
             }
 
-            /**
-             * Handles adding a new custom tag
-             */
             function handleAddTag() {
                 const newTag = customTagInput.value.trim();
                 if (newTag && !trialNames.includes(newTag)) {
                     trialNames.push(newTag);  // Add to the Array
-                    populateSelector();       // Re-render the dropdown
-                    trialSelector.value = newTag; // Select the newly added tag
-                    customTagInput.value = '';  // Clear the input
+                    
+                    // Add directly to DOM instead of full re-render
+                    const li = createTrialItem(newTag);
+                    trialList.appendChild(li);
+                    li.click(); // Select the newly added tag
+                    
+                    customTagInput.value = '';
                 } else if (trialNames.includes(newTag)) {
                     // If tag already exists, just select it
-                    trialSelector.value = newTag;
+                    const allItems = Array.from(trialList.querySelectorAll('li.trial-item'));
+                    const itemToSelect = allItems.find(item => item.textContent === newTag);
+                    if (itemToSelect) itemToSelect.click();
                     customTagInput.value = '';
                 }
             }
-
-            /**
-             * Handles removing the selected tag
-             */
+            
             function handleRemoveTag() {
-                const selectedIndex = trialSelector.selectedIndex;
-                if (selectedIndex === -1) return; // Nothing selected
-
-                trialNames.splice(selectedIndex, 1); // Remove from array by index
-                populateSelector();
-            }
-
-            /**
-             * Handles moving the selected tag up or down
-             * @param {string} direction - 'up' or 'down'
-             */
-            function handleMoveTag(direction) {
-                const selectedIndex = trialSelector.selectedIndex;
-                if (selectedIndex === -1) return;
-
-                if (direction === 'up' && selectedIndex > 0) {
-                    // Swap with item above
-                    const newIndex = selectedIndex - 1;
-                    [trialNames[selectedIndex], trialNames[newIndex]] = [trialNames[newIndex], trialNames[selectedIndex]];
-                    populateSelector();
-                    trialSelector.selectedIndex = newIndex; // Keep moved item selected
-                } else if (direction === 'down' && selectedIndex < trialNames.length - 1) {
-                    // Swap with item below
-                    const newIndex = selectedIndex + 1;
-                    [trialNames[selectedIndex], trialNames[newIndex]] = [trialNames[newIndex], trialNames[selectedIndex]];
-                    populateSelector();
-                    trialSelector.selectedIndex = newIndex; // Keep moved item selected
+                if (!selectedTrialElement) return; // Nothing selected
+                
+                const nameToRemove = selectedTrialElement.textContent;
+                trialNames = trialNames.filter(name => name !== nameToRemove);
+                
+                const itemToRemove = selectedTrialElement;
+                
+                // Select next item or previous item before removing
+                const allItems = Array.from(trialList.querySelectorAll('li.trial-item'));
+                const currentIndex = allItems.indexOf(itemToRemove);
+                
+                if (currentIndex < allItems.length - 1) { // Not the last item
+                    allItems[currentIndex + 1].click();
+                } else if (currentIndex > 0) { // Is the last item, select previous
+                    allItems[currentIndex - 1].click();
+                } else { // It was the only item
+                    selectedTrialElement = null;
                 }
-                updateButtonStates(); // Update move up/down disabled state
+
+                itemToRemove.remove();
+                updateButtonStates();
             }
 
-            /**
-             * Handles the START button click
-             */
             function handleStart() {
+                if (!selectedTrialElement) {
+                    // You could show a custom modal error here
+                    console.error("No trial selected");
+                    return;
+                }
+                
                 isTiming = true;
-                currentTrialName = trialSelector.value;
-                const notes = notesInput.value.trim(); // Get notes
+                currentTrialName = selectedTrialElement.textContent;
+                const notes = notesInput.value.trim();
                 const timestamp = new Date().toString();
 
                 logData.push({
                     trial: currentTrialName,
                     event: 'Start',
-                    notes: notes, // Add notes to the log entry
+                    notes: notes,
                     timestamp: timestamp
                 });
-
-                notesInput.value = ''; // Clear notes after starting
-
+                
+                notesInput.value = '';
                 renderLog();
                 updateButtonStates();
             }
 
-            /**
-             * Handles the STOP button click
-             */
             function handleStop() {
                 isTiming = false;
                 const timestamp = new Date().toString();
 
                 logData.push({
-                    trial: currentTrialName, // Use the name from the corresponding START
+                    trial: currentTrialName,
                     event: 'Stop',
-                    notes: '', // Stop event has no notes
+                    notes: '',
                     timestamp: timestamp
                 });
 
                 renderLog();
                 updateButtonStates();
-
-                // --- NEW: Auto-advance to next trial ---
-                const currentIndex = trialSelector.selectedIndex;
-                if (currentIndex < trialNames.length - 1) {
-                    trialSelector.selectedIndex = currentIndex + 1;
+                
+                // --- Auto-advance to next trial ---
+                if (!selectedTrialElement) return;
+                
+                const allItems = Array.from(trialList.querySelectorAll('li.trial-item'));
+                const currentIndex = allItems.indexOf(selectedTrialElement);
+                
+                if (currentIndex < allItems.length - 1) {
+                    allItems[currentIndex + 1].click(); // Click the next item in the list
                 }
             }
-
-            /**
-             * Handles discarding the last log entry
-             */
+            
             function handleDiscardLast() {
                 if (logData.length > 0) {
-                    logData.pop(); // Remove the last entry
+                    logData.pop();
                 }
-
-                // Re-evaluate the timing state based on the new last entry
+                
                 const lastEntry = logData.length > 0 ? logData[logData.length - 1] : null;
-
+                
                 if (!lastEntry) {
                     isTiming = false;
                     currentTrialName = '';
@@ -417,18 +436,19 @@
                     isTiming = lastEntry.event === 'Start';
                     if (isTiming) {
                         currentTrialName = lastEntry.trial;
-                        // Restore notes if we discarded a "Stop"
                         notesInput.value = lastEntry.notes || '';
+                        
+                        // Re-select the trial associated with the START
+                        const allItems = Array.from(trialList.querySelectorAll('li.trial-item'));
+                        const itemToSelect = allItems.find(item => item.textContent === currentTrialName);
+                        if (itemToSelect) itemToSelect.click();
                     }
                 }
-
+                
                 renderLog();
                 updateButtonStates();
             }
 
-            /**
-             * Handles the final confirmed reset of the log
-             */
             function executeReset() {
                 logData = [];
                 isTiming = false;
@@ -439,54 +459,39 @@
                 hideModal();
             }
 
-            /**
-             * Updates the disabled state of all interactive elements
-             */
             function updateButtonStates() {
-                // If timing, disable START, selector, and all tag/note management
+                // If timing, disable START, list, and all tag/note management
                 startButton.disabled = isTiming;
-                trialSelector.disabled = isTiming;
+                
+                // Disable list interaction
+                trialList.classList.toggle('opacity-50', isTiming);
+                trialList.classList.toggle('pointer-events-none', isTiming);
+                
                 notesInput.disabled = isTiming;
                 customTagInput.disabled = isTiming;
                 addTagButton.disabled = isTiming;
-                removeTagButton.disabled = isTiming;
-                moveUpButton.disabled = isTiming;
-                moveDownButton.disabled = isTiming;
-
+                
                 // If NOT timing, disable STOP
                 stopButton.disabled = !isTiming;
 
                 // Log-dependent buttons
                 discardLastButton.disabled = logData.length === 0;
                 resetLogButton.disabled = logData.length === 0;
-
+                
                 // Tag management buttons (when not timing)
-                const selectedIndex = trialSelector.selectedIndex;
-                const hasSelection = selectedIndex !== -1;
-
-                if (!isTiming) {
-                    removeTagButton.disabled = !hasSelection;
-                    moveUpButton.disabled = !hasSelection || selectedIndex === 0;
-                    moveDownButton.disabled = !hasSelection || selectedIndex === (trialNames.length - 1);
-                }
+                const hasSelection = selectedTrialElement !== null;
+                removeTagButton.disabled = !hasSelection || isTiming;
             }
 
-            /**
-             * Handles exporting the logData to a CSV file
-             */
             function handleExport() {
                 if (logData.length === 0) return;
 
                 let csvContent = "data:text/csv;charset=utf-8,";
-                // Add Header, including Notes
-                csvContent += "Trial,Event,Notes,Timestamp\n";
+                csvContent += "Trial,Event,Notes,Timestamp\n"; 
 
                 logData.forEach(entry => {
-                    // Handle notes that might contain commas
                     const notes = `"${(entry.notes || '').replace(/"/g, '""')}"`;
-                    // Enclose timestamp in quotes because it contains commas
                     const timestamp = `"${entry.timestamp}"`;
-
                     const row = [entry.trial, entry.event, notes, timestamp].join(",");
                     csvContent += row + "\n";
                 });
@@ -499,33 +504,37 @@
                 link.click();
                 document.body.removeChild(link);
             }
-
+            
             // --- INITIALIZATION ---
-            populateSelector();
+            populateTrialList();
             updateButtonStates();
-            renderLog(); // Renders the empty state
+            renderLog();
+
+            // Initialize Sortable.js
+            new Sortable(trialList, {
+                animation: 150,
+                ghostClass: 'sortable-ghost', // Class for the ghost element
+                onEnd: updateTrialNamesFromDOM // Callback when drag ends
+            });
 
             // --- EVENT LISTENERS ---
             startButton.addEventListener('click', handleStart);
             stopButton.addEventListener('click', handleStop);
             exportButton.addEventListener('click', handleExport);
-
+            
             // Tag Management
             addTagButton.addEventListener('click', handleAddTag);
             removeTagButton.addEventListener('click', handleRemoveTag);
-            moveUpButton.addEventListener('click', () => handleMoveTag('up'));
-            moveDownButton.addEventListener('click', () => handleMoveTag('down'));
-            trialSelector.addEventListener('change', updateButtonStates); // Update move buttons on selection change
             customTagInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
                     handleAddTag();
                 }
             });
-
+            
             // Log Management
             discardLastButton.addEventListener('click', handleDiscardLast);
             resetLogButton.addEventListener('click', showModal);
-
+            
             // Modal Listeners
             cancelResetButton.addEventListener('click', hideModal);
             confirmResetButton.addEventListener('click', executeReset);
@@ -535,3 +544,4 @@
 
 </body>
 </html>
+
