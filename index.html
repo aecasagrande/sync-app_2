@@ -380,7 +380,7 @@
                     const row = document.createElement('tr');
                     
                     row.innerHTML = `
-                        <td class="px-6 py-4 whitespace-nowJrap text-sm font-medium text-gray-900">${entry.trial}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${entry.trial}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm ${entry.event === 'Start' ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}">${entry.event}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${entry.notes || ''}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">${entry.timestamp}</td>
@@ -509,7 +509,7 @@
                 
                 renderLog();
                 updateButtonStates();
-.            }
+            }
 
             function executeReset() {
                 logData = [];
