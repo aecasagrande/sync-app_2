@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time Sync App</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Google Font: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Apply the Inter font family */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scrollbar for the log */
+        .log-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        .log-container::-webkit-scrollbar-track {
+            background: #f1f5f9; /* gray-100 */
+            border-radius: 10px;
+        }
+        .log-container::-webkit-scrollbar-thumb {
+            background: #94a3b8; /* gray-400 */
+            border-radius: 10px;
+        }
+        .log-container::-webkit-scrollbar-thumb:hover {
+            background: #64748b; /* gray-500 */
+        }
+        /* Styles for the confirmation modal */
+        #confirmationModal {
+            transition: opacity 0.2s ease-in-out;
+        }
+        #modalContent {
+            transition: transform 0.2s ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+
+    <div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-3xl">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">
+            Time Sync App
+        </h1>
+
+        <!-- Trial Selection and Custom Tag Input -->
+        <div class="mb-6">
+            <label for="trialSelector" class="block text-sm font-medium text-gray-700 mb-2">
+                1. Select Trial
+            </label>
+            <!-- Dropdown -->
+            <div class="flex flex-col sm:flex-row gap-3">
+                <select id="trialSelector" class="flex-grow block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <!-- Options will be populated by JS -->
+                </select>
+            </div>
+
+            <!-- Notes Input -->
+            <div class="mt-3">
+                <label for="notesInput" class="block text-sm font-medium text-gray-700 mb-2">
+                    2. Add Notes (Optional)
+                </label>
+                <textarea id="notesInput" rows="3" placeholder="Enter notes for this trial..." class="block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:bg-gray-50"></textarea>
+            </div>
+
+            <!-- Re-order Buttons -->
+            <div class="flex gap-3 mt-4">
+                <button id="moveUpButton" class="w-full px-4 py-2 bg-gray-200 text-gray-700 font-medium rounded-lg shadow-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                    Move Tag Up
+                </button>
+                <button id="moveDownButton" class="w-full px-4 py-2 bg-gray-200 text-gray-700 font-medium rounded-lg shadow-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                    Move Tag Down
+                </button>
+            </div>
+
+            <!-- Add/Remove Tag -->
+            <div class="flex flex-col sm:flex-row gap-3 mt-4">
+                <input type="text" id="customTagInput" placeholder="Type new tag name..." class="flex-grow block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:bg-gray-50">
+            </div>
+            <div class="flex gap-3 mt-3">
+                <button id="addTagButton" class="w-full px-5 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-200 disabled:opacity-50">
+                    Add Tag
+                </button>
+                 <button id="removeTagButton" class="w-full px-5 py-2 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                    Remove Selected Tag
+                </button>
+            </div>
+        </div>
+
+        <!-- Start / Stop Buttons -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+            <button id="startButton" class="w-full py-4 px-6 bg-green-500 text-white font-bold text-lg rounded-lg shadow-lg hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                START
+            </button>
+            <button id="stopButton" class="w-full py-4 px-6 bg-red-500 text-white font-bold text-lg rounded-lg shadow-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                STOP
+            </button>
+        </div>
+
+        <!-- Log Area -->
+        <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
+            <h2 class="text-2xl font-semibold text-gray-700">
+                Event Log
+            </h2>
+            <div class="flex gap-2 flex-wrap">
+                <button id="discardLastButton" class="px-4 py-2 bg-yellow-500 text-white text-sm font-medium rounded-lg shadow-md hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-offset-2 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                    Discard Last
+                </button>
+                <button id="resetLogButton" class="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg shadow-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                    Reset Log
+                </button>
+                <button id="exportButton" class="px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-lg shadow-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                    Export to CSV
+                </button>
+            </div>
+        </div>
+
+        <div class="log-container w-full max-h-80 overflow-y-auto border border-gray-200 rounded-lg bg-gray-50 p-1">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-100 sticky top-0">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Trial
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Event
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Notes
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Timestamp
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="logBody" class="bg-white divide-y divide-gray-200">
+                        <!-- Log entries will be populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <p id="emptyLogMessage" class="text-center text-gray-500 pt-4">Log is empty.</p>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmationModal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50 hidden opacity-0">
+        <div id="modalContent" class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 transform scale-95">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">Are you sure?</h3>
+            <p class="text-gray-600 mb-6">This action will permanently delete all log entries. This cannot be undone.</p>
+            <div class="flex justify-end gap-3">
+                <button id="cancelResetButton" class="px-5 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 transition duration-200">
+                    Cancel
+                </button>
+                <button id="confirmResetButton" class="px-5 py-2 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition duration-200">
+                    Confirm Reset
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- STATE ---
+            let logData = [];
+            let isTiming = false;
+            let currentTrialName = '';
+            // Use an Array to maintain order
+            let trialNames = [
+                'OFF_30s_T1',
+                'Trial1',
+                'OFF_30s_T2',
+                'Trial2',
+                'OFF_30s_T3',
+                'Trial3',
+                'OFF_30s_T4',
+                'Trial4'
+            ];
+
+            // --- DOM ELEMENTS ---
+            const startButton = document.getElementById('startButton');
+            const stopButton = document.getElementById('stopButton');
+            const exportButton = document.getElementById('exportButton');
+            const trialSelector = document.getElementById('trialSelector');
+            const notesInput = document.getElementById('notesInput'); // New notes field
+            const customTagInput = document.getElementById('customTagInput');
+            const addTagButton = document.getElementById('addTagButton');
+            const removeTagButton = document.getElementById('removeTagButton');
+            const moveUpButton = document.getElementById('moveUpButton');
+            const moveDownButton = document.getElementById('moveDownButton');
+            const discardLastButton = document.getElementById('discardLastButton');
+            const resetLogButton = document.getElementById('resetLogButton');
+            const logBody = document.getElementById('logBody');
+            const emptyLogMessage = document.getElementById('emptyLogMessage');
+
+            // Modal Elements
+            const confirmationModal = document.getElementById('confirmationModal');
+            const modalContent = document.getElementById('modalContent');
+            const cancelResetButton = document.getElementById('cancelResetButton');
+            const confirmResetButton = document.getElementById('confirmResetButton');
+
+            // --- FUNCTIONS ---
+
+            /**
+             * Shows the confirmation modal
+             */
+            function showModal() {
+                confirmationModal.classList.remove('hidden');
+                setTimeout(() => {
+                     confirmationModal.classList.remove('opacity-0');
+                     modalContent.classList.remove('scale-95');
+                }, 10); // Start transition
+            }
+
+            /**
+             * Hides the confirmation modal
+             */
+            function hideModal() {
+                confirmationModal.classList.add('opacity-0');
+                modalContent.classList.add('scale-95');
+                setTimeout(() => {
+                    confirmationModal.classList.add('hidden');
+                }, 200); // Wait for transition to end
+            }
+
+            /**
+             * Populates the trial selector dropdown from the trialNames Array
+             */
+            function populateSelector() {
+                const selectedValue = trialSelector.value;
+                trialSelector.innerHTML = ''; // Clear existing options
+
+                trialNames.forEach(name => {
+                    const option = document.createElement('option');
+                    option.value = name;
+                    option.textContent = name;
+                    trialSelector.appendChild(option);
+                });
+
+                // Try to re-select the previously selected value
+                if (trialNames.includes(selectedValue)) {
+                    trialSelector.value = selectedValue;
+                }
+
+                // Update button states after population, as it affects move/remove buttons
+                updateButtonStates();
+            }
+
+            /**
+             * Renders the logData array into the HTML table
+             */
+            function renderLog() {
+                logBody.innerHTML = ''; // Clear existing log
+
+                if (logData.length === 0) {
+                    emptyLogMessage.classList.remove('hidden');
+                    exportButton.disabled = true;
+                } else {
+                    emptyLogMessage.classList.add('hidden');
+                    exportButton.disabled = false;
+                }
+
+                logData.forEach(entry => {
+                    const row = document.createElement('tr');
+
+                    const cellTrial = document.createElement('td');
+                    cellTrial.className = 'px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900';
+                    cellTrial.textContent = entry.trial;
+
+                    const cellEvent = document.createElement('td');
+                    cellEvent.className = 'px-6 py-4 whitespace-nowrap text-sm';
+                    cellEvent.textContent = entry.event;
+                    // Add color to event
+                    if (entry.event === 'Start') {
+                        cellEvent.classList.add('text-green-600', 'font-semibold');
+                    } else if (entry.event === 'Stop') {
+                        cellEvent.classList.add('text-red-600', 'font-semibold');
+                    }
+
+                    // New Cell for Notes
+                    const cellNotes = document.createElement('td');
+                    cellNotes.className = 'px-6 py-4 whitespace-nowrap text-sm text-gray-700';
+                    cellNotes.textContent = entry.notes || ''; // Handle undefined/null notes
+
+                    const cellTimestamp = document.createElement('td');
+                    cellTimestamp.className = 'px-6 py-4 whitespace-nowrap text-sm text-gray-600';
+                    cellTimestamp.textContent = entry.timestamp;
+
+                    row.appendChild(cellTrial);
+                    row.appendChild(cellEvent);
+                    row.appendChild(cellNotes); // Add notes cell to row
+                    row.appendChild(cellTimestamp);
+                    logBody.appendChild(row);
+                });
+
+                // Update states that depend on log length
+                updateButtonStates();
+            }
+
+            /**
+             * Handles adding a new custom tag
+             */
+            function handleAddTag() {
+                const newTag = customTagInput.value.trim();
+                if (newTag && !trialNames.includes(newTag)) {
+                    trialNames.push(newTag);  // Add to the Array
+                    populateSelector();       // Re-render the dropdown
+                    trialSelector.value = newTag; // Select the newly added tag
+                    customTagInput.value = '';  // Clear the input
+                } else if (trialNames.includes(newTag)) {
+                    // If tag already exists, just select it
+                    trialSelector.value = newTag;
+                    customTagInput.value = '';
+                }
+            }
+
+            /**
+             * Handles removing the selected tag
+             */
+            function handleRemoveTag() {
+                const selectedIndex = trialSelector.selectedIndex;
+                if (selectedIndex === -1) return; // Nothing selected
+
+                trialNames.splice(selectedIndex, 1); // Remove from array by index
+                populateSelector();
+            }
+
+            /**
+             * Handles moving the selected tag up or down
+             * @param {string} direction - 'up' or 'down'
+             */
+            function handleMoveTag(direction) {
+                const selectedIndex = trialSelector.selectedIndex;
+                if (selectedIndex === -1) return;
+
+                if (direction === 'up' && selectedIndex > 0) {
+                    // Swap with item above
+                    const newIndex = selectedIndex - 1;
+                    [trialNames[selectedIndex], trialNames[newIndex]] = [trialNames[newIndex], trialNames[selectedIndex]];
+                    populateSelector();
+                    trialSelector.selectedIndex = newIndex; // Keep moved item selected
+                } else if (direction === 'down' && selectedIndex < trialNames.length - 1) {
+                    // Swap with item below
+                    const newIndex = selectedIndex + 1;
+                    [trialNames[selectedIndex], trialNames[newIndex]] = [trialNames[newIndex], trialNames[selectedIndex]];
+                    populateSelector();
+                    trialSelector.selectedIndex = newIndex; // Keep moved item selected
+                }
+                updateButtonStates(); // Update move up/down disabled state
+            }
+
+            /**
+             * Handles the START button click
+             */
+            function handleStart() {
+                isTiming = true;
+                currentTrialName = trialSelector.value;
+                const notes = notesInput.value.trim(); // Get notes
+                const timestamp = new Date().toString();
+
+                logData.push({
+                    trial: currentTrialName,
+                    event: 'Start',
+                    notes: notes, // Add notes to the log entry
+                    timestamp: timestamp
+                });
+
+                notesInput.value = ''; // Clear notes after starting
+
+                renderLog();
+                updateButtonStates();
+            }
+
+            /**
+             * Handles the STOP button click
+             */
+            function handleStop() {
+                isTiming = false;
+                const timestamp = new Date().toString();
+
+                logData.push({
+                    trial: currentTrialName, // Use the name from the corresponding START
+                    event: 'Stop',
+                    notes: '', // Stop event has no notes
+                    timestamp: timestamp
+                });
+
+                renderLog();
+                updateButtonStates();
+
+                // --- NEW: Auto-advance to next trial ---
+                const currentIndex = trialSelector.selectedIndex;
+                if (currentIndex < trialNames.length - 1) {
+                    trialSelector.selectedIndex = currentIndex + 1;
+                }
+            }
+
+            /**
+             * Handles discarding the last log entry
+             */
+            function handleDiscardLast() {
+                if (logData.length > 0) {
+                    logData.pop(); // Remove the last entry
+                }
+
+                // Re-evaluate the timing state based on the new last entry
+                const lastEntry = logData.length > 0 ? logData[logData.length - 1] : null;
+
+                if (!lastEntry) {
+                    isTiming = false;
+                    currentTrialName = '';
+                } else {
+                    isTiming = lastEntry.event === 'Start';
+                    if (isTiming) {
+                        currentTrialName = lastEntry.trial;
+                        // Restore notes if we discarded a "Stop"
+                        notesInput.value = lastEntry.notes || '';
+                    }
+                }
+
+                renderLog();
+                updateButtonStates();
+            }
+
+            /**
+             * Handles the final confirmed reset of the log
+             */
+            function executeReset() {
+                logData = [];
+                isTiming = false;
+                currentTrialName = '';
+                notesInput.value = '';
+                renderLog();
+                updateButtonStates();
+                hideModal();
+            }
+
+            /**
+             * Updates the disabled state of all interactive elements
+             */
+            function updateButtonStates() {
+                // If timing, disable START, selector, and all tag/note management
+                startButton.disabled = isTiming;
+                trialSelector.disabled = isTiming;
+                notesInput.disabled = isTiming;
+                customTagInput.disabled = isTiming;
+                addTagButton.disabled = isTiming;
+                removeTagButton.disabled = isTiming;
+                moveUpButton.disabled = isTiming;
+                moveDownButton.disabled = isTiming;
+
+                // If NOT timing, disable STOP
+                stopButton.disabled = !isTiming;
+
+                // Log-dependent buttons
+                discardLastButton.disabled = logData.length === 0;
+                resetLogButton.disabled = logData.length === 0;
+
+                // Tag management buttons (when not timing)
+                const selectedIndex = trialSelector.selectedIndex;
+                const hasSelection = selectedIndex !== -1;
+
+                if (!isTiming) {
+                    removeTagButton.disabled = !hasSelection;
+                    moveUpButton.disabled = !hasSelection || selectedIndex === 0;
+                    moveDownButton.disabled = !hasSelection || selectedIndex === (trialNames.length - 1);
+                }
+            }
+
+            /**
+             * Handles exporting the logData to a CSV file
+             */
+            function handleExport() {
+                if (logData.length === 0) return;
+
+                let csvContent = "data:text/csv;charset=utf-8,";
+                // Add Header, including Notes
+                csvContent += "Trial,Event,Notes,Timestamp\n";
+
+                logData.forEach(entry => {
+                    // Handle notes that might contain commas
+                    const notes = `"${(entry.notes || '').replace(/"/g, '""')}"`;
+                    // Enclose timestamp in quotes because it contains commas
+                    const timestamp = `"${entry.timestamp}"`;
+
+                    const row = [entry.trial, entry.event, notes, timestamp].join(",");
+                    csvContent += row + "\n";
+                });
+
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", "time_sync_log.csv");
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+
+            // --- INITIALIZATION ---
+            populateSelector();
+            updateButtonStates();
+            renderLog(); // Renders the empty state
+
+            // --- EVENT LISTENERS ---
+            startButton.addEventListener('click', handleStart);
+            stopButton.addEventListener('click', handleStop);
+            exportButton.addEventListener('click', handleExport);
+
+            // Tag Management
+            addTagButton.addEventListener('click', handleAddTag);
+            removeTagButton.addEventListener('click', handleRemoveTag);
+            moveUpButton.addEventListener('click', () => handleMoveTag('up'));
+            moveDownButton.addEventListener('click', () => handleMoveTag('down'));
+            trialSelector.addEventListener('change', updateButtonStates); // Update move buttons on selection change
+            customTagInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    handleAddTag();
+                }
+            });
+
+            // Log Management
+            discardLastButton.addEventListener('click', handleDiscardLast);
+            resetLogButton.addEventListener('click', showModal);
+
+            // Modal Listeners
+            cancelResetButton.addEventListener('click', hideModal);
+            confirmResetButton.addEventListener('click', executeReset);
+
+        });
+    </script>
+
+</body>
+</html>
