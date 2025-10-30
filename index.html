@@ -4,13 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Time Sync App</title>
-    <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Load Google Font: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Load Sortable.js for Drag-and-Drop -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
     <style>
         /* Apply the Inter font family */
@@ -72,22 +69,16 @@
             Time Sync App
         </h1>
 
-        <!-- Real-time Clock -->
         <p id="realTimeClock" class="text-xl font-medium text-center text-gray-600 mb-6 font-mono">
-            <!-- Clock will be populated by JS -->
-        </p>
+            </p>
 
-        <!-- Trial Selection and Custom Tag Input -->
         <div class="mb-6">
             <label for="trialList" class="block text-sm font-medium text-gray-700 mb-2">
                 1. Select Trial (Click to select, Drag to re-order)
             </label>
-            <!-- Sortable List (replaces dropdown) -->
             <ul id="trialList" class="w-full max-h-48 overflow-y-auto border border-gray-300 rounded-lg bg-white shadow-sm disabled:opacity-50 disabled:bg-gray-50">
-                <!-- Trial items will be populated by JS -->
-            </ul>
+                </ul>
             
-            <!-- Notes Input -->
             <div class="mt-3">
                 <label for="notesInput" class="block text-sm font-medium text-gray-700 mb-2">
                     2. Add Notes (Optional)
@@ -95,7 +86,6 @@
                 <textarea id="notesInput" rows="3" placeholder="Enter notes for this trial..." class="block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:bg-gray-50"></textarea>
             </div>
             
-            <!-- Add/Remove Tag -->
             <div class="flex flex-col sm:flex-row gap-3 mt-4">
                 <input type="text" id="customTagInput" placeholder="Type new tag name..." class="flex-grow block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:bg-gray-50">
             </div>
@@ -109,7 +99,6 @@
             </div>
         </div>
 
-        <!-- Start / Stop Buttons -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
             <button id="startButton" class="w-full py-4 px-6 bg-green-500 text-white font-bold text-lg rounded-lg shadow-lg hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
                 START
@@ -119,7 +108,6 @@
             </button>
         </div>
 
-        <!-- Log Area -->
         <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
             <h2 class="text-2xl font-semibold text-gray-700">
                 Event Log
@@ -157,15 +145,13 @@
                         </tr>
                     </thead>
                     <tbody id="logBody" class="bg-white divide-y divide-gray-200">
-                        <!-- Log entries will be populated by JS -->
-                    </tbody>
+                        </tbody>
                 </table>
             </div>
         </div>
         <p id="emptyLogMessage" class="text-center text-gray-500 pt-4">Log is empty.</p>
     </div>
 
-    <!-- Confirmation Modal -->
     <div id="confirmationModal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50 hidden opacity-0">
         <div id="modalContent" class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 transform scale-95">
             <h3 class="text-xl font-bold text-gray-800 mb-4">Are you sure?</h3>
@@ -191,56 +177,68 @@
             let selectedTrialElement = null; // Holds the currently selected <li>
             // Use an Array to maintain order
             let trialNames = [
+                'OFF_5min_Sitting',
+                'OFF_5min_Standing',
+                'OFF_5min_Walking',
+                'OFF_Giladi_Walk',
+                'OFF_Giladi_DTWalk',
+                'OFF_Giladi_Carrying',
+                'OFF_Giladi_Turns',
+                'OFF_Giladi_DTTurns',
+                'OFF_Giladi_Shuffle',
+                'OFF_Giladi_Agility',
+                'OFF_Giladi_Doorway',
                 'OFF_30s_T1',
-                'Trial1',
+                'OFF_Trial1',
                 'OFF_30s_T2',
-                'Trial2',
+                'OFF_Trial2',
                 'OFF_30s_T3',
-                'Trial3',
+                'OFF_Trial3',
                 'OFF_30s_T4',
-                'Trial4',
+                'OFF_Trial4',
                 'OFF_30s_T5',
-                'Trial5',
+                'OFF_Trial5',
                 'OFF_30s_T6',
-                'Trial6',
+                'OFF_Trial6',
                 'OFF_30s_T7',
-                'Trial7',
+                'OFF_Trial7',
                 'OFF_30s_T8',
-                'Trial8',
+                'OFF_Trial8',
                 'OFF_30s_T9',
-                'Trial9',
+                'OFF_Trial9',
                 'OFF_30s_T10',
-                'Trial10',
+                'OFF_Trial10',
+                'ON_5min_Sitting',
+                'ON_5min_Standing',
+                'ON_5min_Walking',
+                'ON_Giladi_Walk',
+                'ON_Giladi_DTWalk',
+                'ON_Giladi_Carrying',
+                'ON_Giladi_Turns',
+                'ON_Giladi_DTTurns',
+                'ON_Giladi_Shuffle',
+                'ON_Giladi_Agility',
+                'ON_Giladi_Doorway',
                 'ON_30s_T1',
-                'ON_T1',
+                'ON_Trial1',
                 'ON_30s_T2',
-                'ON_T2',
+                'ON_Trial2',
                 'ON_30s_T3',
-                'ON_T3',
+                'ON_Trial3',
                 'ON_30s_T4',
-                'ON_T4',
+                'ON_Trial4',
                 'ON_30s_T5',
-                'ON_T5',
+                'ON_Trial5',
                 'ON_30s_T6',
-                'ON_T6',
+                'ON_Trial6',
                 'ON_30s_T7',
-                'ON_T7',
+                'ON_Trial7',
                 'ON_30s_T8',
-                'ON_T8',
+                'ON_Trial8',
                 'ON_30s_T9',
-                'ON_T9',
+                'ON_Trial9',
                 'ON_30s_T10',
-                'ON_T10',
-                'OFF_TRIAL1',
-                'OFF_TRIAL2',
-                'OFF_TRIAL3',
-                'OFF_TRIAL4',
-                'OFF_TRIAL5',
-                'OFF_TRIAL6',
-                'OFF_TRIAL7',
-                'OFF_TRIAL8',
-                'OFF_TRIAL9',
-                'OFF_TRIAL10'
+                'ON_Trial10'
             ];
 
             // --- DOM ELEMENTS ---
@@ -609,4 +607,3 @@
 
 </body>
 </html>
-
