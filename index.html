@@ -10,55 +10,33 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
     <style>
-        /* Apply the Inter font family */
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-        /* Custom scrollbar for the log */
-        .log-container::-webkit-scrollbar,
-        #trialList::-webkit-scrollbar {
-            width: 8px;
-        }
-        .log-container::-webkit-scrollbar-track,
-        #trialList::-webkit-scrollbar-track {
-            background: #f1f5f9; /* gray-100 */
-            border-radius: 10px;
-        }
-        .log-container::-webkit-scrollbar-thumb,
-        #trialList::-webkit-scrollbar-thumb {
-            background: #94a3b8; /* gray-400 */
-            border-radius: 10px;
-        }
-        .log-container::-webkit-scrollbar-thumb:hover,
-        #trialList::-webkit-scrollbar-thumb:hover {
-            background: #64748b; /* gray-500 */
-        }
+        body { font-family: 'Inter', sans-serif; }
         
-        /* Styles for the confirmation modal */
-        #confirmationModal {
-            transition: opacity 0.2s ease-in-out;
-        }
-        #modalContent {
-            transition: transform 0.2s ease-in-out;
-        }
+        /* Custom scrollbar */
+        .log-container::-webkit-scrollbar, #trialList::-webkit-scrollbar { width: 8px; }
+        .log-container::-webkit-scrollbar-track, #trialList::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 10px; }
+        .log-container::-webkit-scrollbar-thumb, #trialList::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 10px; }
         
-        /* Styles for new sortable list */
-        .trial-item {
-            transition: background-color 0.1s ease-in-out;
-        }
-        
-        /* Style for the selected trial */
+        /* Selection Styles */
         .trial-item.selected {
-            background-color: #3b82f6; /* blue-500 */
+            background-color: #3b82f6; 
             color: white;
             font-weight: 500;
         }
         
-        /* Style for the item being dragged (Sortable.js class) */
+        /* Dragging Styles */
         .sortable-ghost {
-            background-color: #dbeafe; /* blue-100 */
+            background-color: #dbeafe; 
             opacity: 0.7;
-            border-radius: 0.5rem; /* rounded-lg */
+        }
+
+        /* Toggle Switch Styles */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #3b82f6;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #3b82f6;
         }
     </style>
 </head>
@@ -69,58 +47,76 @@
             Time Sync App
         </h1>
 
-        <p id="realTimeClock" class="text-xl font-medium text-center text-gray-600 mb-6 font-mono">
-            </p>
+        <p id="realTimeClock" class="text-xl font-medium text-center text-gray-600 mb-6 font-mono"></p>
 
         <div class="mb-6">
-            <label for="trialList" class="block text-sm font-medium text-gray-700 mb-2">
-                1. Select Trial (Click to select, Drag to re-order)
-            </label>
-            <ul id="trialList" class="w-full max-h-32 overflow-y-auto border border-gray-300 rounded-lg bg-white shadow-sm">
-                </ul>
+            <div class="flex justify-between items-end mb-2">
+                <label class="block text-sm font-medium text-gray-700">
+                    1. Select Trial
+                </label>
+                
+                <div class="flex items-center">
+                    <span class="mr-2 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Lock List
+                    </span>
+                    <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                        <input type="checkbox" name="toggle" id="editModeToggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer border-gray-300"/>
+                        <label for="editModeToggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                    </div>
+                    <span class="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Edit Order
+                    </span>
+                </div>
+            </div>
+
+            <div id="activeSelectionDisplay" class="w-full p-4 mb-2 bg-blue-50 border-2 border-blue-200 rounded-lg text-center shadow-sm">
+                <span class="text-gray-500 text-xs uppercase font-bold block mb-1">Currently Selected</span>
+                <span id="activeSelectionText" class="text-lg font-bold text-blue-800">None</span>
+            </div>
+
+            <ul id="trialList" class="w-full max-h-48 overflow-y-auto border border-gray-300 rounded-lg bg-white shadow-sm transition-colors duration-200">
+            </ul>
             
-            <div class="mt-3">
+            <div class="mt-4">
                 <label for="notesInput" class="block text-sm font-medium text-gray-700 mb-2">
                     2. Add Notes (Optional)
                 </label>
-                <textarea id="notesInput" rows="3" placeholder="Enter notes for this trial..." class="block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:bg-gray-50"></textarea>
+                <textarea id="notesInput" rows="2" placeholder="Enter notes..." class="block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:bg-gray-50"></textarea>
             </div>
             
             <div class="flex flex-col sm:flex-row gap-3 mt-4">
-                <input type="text" id="customTagInput" placeholder="Type new tag name..." class="flex-grow block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:bg-gray-50">
+                <input type="text" id="customTagInput" placeholder="Type new tag name..." class="flex-grow block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
             <div class="flex gap-3 mt-3">
-                <button id="addTagButton" class="w-full px-5 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-200 disabled:opacity-50">
+                <button id="addTagButton" class="w-full px-5 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition duration-200 disabled:opacity-50">
                     Add Tag
                 </button>
-                 <button id="removeTagButton" class="w-full px-5 py-2 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
-                    Remove Selected Tag
+                 <button id="removeTagButton" class="w-full px-5 py-2 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700 transition duration-200 disabled:opacity-50">
+                    Remove Selected
                 </button>
             </div>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-            <button id="startButton" class="w-full py-4 px-6 bg-green-500 text-white font-bold text-lg rounded-lg shadow-lg hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+            <button id="startButton" class="w-full py-4 px-6 bg-green-500 text-white font-bold text-lg rounded-lg shadow-lg hover:bg-green-600 transition duration-200 disabled:opacity-50">
                 START
             </button>
-            <button id="stopButton" class="w-full py-4 px-6 bg-red-500 text-white font-bold text-lg rounded-lg shadow-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+            <button id="stopButton" class="w-full py-4 px-6 bg-red-500 text-white font-bold text-lg rounded-lg shadow-lg hover:bg-red-600 transition duration-200 disabled:opacity-50">
                 STOP
             </button>
         </div>
 
         <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
-            <h2 class="text-2xl font-semibold text-gray-700">
-                Event Log
-            </h2>
+            <h2 class="text-2xl font-semibold text-gray-700">Event Log</h2>
             <div class="flex gap-2 flex-wrap">
-                <button id="discardLastButton" class="px-4 py-2 bg-yellow-500 text-white text-sm font-medium rounded-lg shadow-md hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-offset-2 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                <button id="discardLastButton" class="px-4 py-2 bg-yellow-500 text-white text-sm font-medium rounded-lg shadow-md hover:bg-yellow-600 disabled:opacity-50">
                     Discard Last
                 </button>
-                <button id="resetLogButton" class="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg shadow-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                <button id="resetLogButton" class="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg shadow-md hover:bg-red-700 disabled:opacity-50">
                     Reset Log
                 </button>
-                <button id="exportButton" class="px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-lg shadow-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
-                    Export to CSV
+                <button id="exportButton" class="px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-lg shadow-md hover:bg-gray-700 disabled:opacity-50">
+                    Export CSV
                 </button>
             </div>
         </div>
@@ -130,43 +126,29 @@
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-100 sticky top-0">
                         <tr>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Trial
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Event
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Notes
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Timestamp
-                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trial</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Event</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Notes</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Timestamp</th>
                         </tr>
                     </thead>
-                    <tbody id="logBody" class="bg-white divide-y divide-gray-200">
-                        </tbody>
+                    <tbody id="logBody" class="bg-white divide-y divide-gray-200"></tbody>
                 </table>
             </div>
         </div>
         <p id="emptyLogMessage" class="text-center text-gray-500 pt-4">Log is empty.</p>
     </div>
 
-    <div id="confirmationModal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50 hidden opacity-0">
-        <div id="modalContent" class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 transform scale-95">
+    <div id="confirmationModal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50 hidden opacity-0 transition-opacity duration-200">
+        <div id="modalContent" class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 transform scale-95 transition-transform duration-200">
             <h3 class="text-xl font-bold text-gray-800 mb-4">Are you sure?</h3>
-            <p class="text-gray-600 mb-6">This action will permanently delete all log entries. This cannot be undone.</p>
+            <p class="text-gray-600 mb-6">This will permanently delete all log entries.</p>
             <div class="flex justify-end gap-3">
-                <button id="cancelResetButton" class="px-5 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 transition duration-200">
-                    Cancel
-                </button>
-                <button id="confirmResetButton" class="px-5 py-2 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition duration-200">
-                    Confirm Reset
-                </button>
+                <button id="cancelResetButton" class="px-5 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300">Cancel</button>
+                <button id="confirmResetButton" class="px-5 py-2 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700">Confirm</button>
             </div>
         </div>
     </div>
-
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -174,112 +156,55 @@
             let logData = [];
             let isTiming = false;
             let currentTrialName = '';
-            let selectedTrialElement = null; // Holds the currently selected <li>
-            // Use an Array to maintain order
+            let selectedTrialElement = null; 
+            let sortableInstance = null; // Store sortable instance to toggle it
+            
             let trialNames = [
-                'OFF_5min_Sitting',
-                'OFF_5min_Standing',
-                'OFF_5min_Walking',
-                'OFF_Giladi_Walk',
-                'OFF_Giladi_DTWalk',
-                'OFF_Giladi_Carrying',
-                'OFF_Giladi_Turns',
-                'OFF_Giladi_DTTurns',
-                'OFF_Giladi_Shuffle',
-                'OFF_Giladi_Agility',
-                'OFF_Giladi_Doorway',
-                'OFF_2min_VR_Sitting',
-                'OFF_2min_VR_Standing',
-                'OFF_2min_VR_Walking',
-                'OFF_30s_T1',
-                'OFF_Trial1',
-                'OFF_30s_T2',
-                'OFF_Trial2',
-                'OFF_30s_T3',
-                'OFF_Trial3',
-                'OFF_30s_T4',
-                'OFF_Trial4',
-                'OFF_30s_T5',
-                'OFF_Trial5',
-                'OFF_30s_T6',
-                'OFF_Trial6',
-                'OFF_30s_T7',
-                'OFF_Trial7',
-                'OFF_30s_T8',
-                'OFF_Trial8',
-                'OFF_30s_T9',
-                'OFF_Trial9',
-                'OFF_30s_T10',
-                'OFF_Trial10',
-                'ON_5min_Sitting',
-                'ON_5min_Standing',
-                'ON_5min_Walking',
-                'ON_Giladi_Walk',
-                'ON_Giladi_DTWalk',
-                'ON_Giladi_Carrying',
-                'ON_Giladi_Turns',
-                'ON_Giladi_DTTurns',
-                'ON_Giladi_Shuffle',
-                'ON_Giladi_Agility',
-                'ON_Giladi_Doorway',
-                'ON_2min_VR_Sitting',
-                'ON_2min_VR_Standing',
-                'ON_2min_VR_Walking',
-                'ON_30s_T1',
-                'ON_Trial1',
-                'ON_30s_T2',
-                'ON_Trial2',
-                'ON_30s_T3',
-                'ON_Trial3',
-                'ON_30s_T4',
-                'ON_Trial4',
-                'ON_30s_T5',
-                'ON_Trial5',
-                'ON_30s_T6',
-                'ON_Trial6',
-                'ON_30s_T7',
-                'ON_Trial7',
-                'ON_30s_T8',
-                'ON_Trial8',
-                'ON_30s_T9',
-                'ON_Trial9',
-                'ON_30s_T10',
-                'ON_Trial10'
+                'OFF_5min_Sitting', 'OFF_5min_Standing', 'OFF_5min_Walking', 'OFF_Giladi_Walk',
+                'OFF_Giladi_DTWalk', 'OFF_Giladi_Carrying', 'OFF_Giladi_Turns', 'OFF_Giladi_DTTurns',
+                'OFF_Giladi_Shuffle', 'OFF_Giladi_Agility', 'OFF_Giladi_Doorway', 'OFF_2min_VR_Sitting',
+                'OFF_2min_VR_Standing', 'OFF_2min_VR_Walking', 'OFF_30s_T1', 'OFF_Trial1', 'OFF_30s_T2',
+                'OFF_Trial2', 'OFF_30s_T3', 'OFF_Trial3', 'OFF_30s_T4', 'OFF_Trial4', 'OFF_30s_T5',
+                'OFF_Trial5', 'OFF_30s_T6', 'OFF_Trial6', 'OFF_30s_T7', 'OFF_Trial7', 'OFF_30s_T8',
+                'OFF_Trial8', 'OFF_30s_T9', 'OFF_Trial9', 'OFF_30s_T10', 'OFF_Trial10',
+                'ON_5min_Sitting', 'ON_5min_Standing', 'ON_5min_Walking', 'ON_Giladi_Walk',
+                'ON_Giladi_DTWalk', 'ON_Giladi_Carrying', 'ON_Giladi_Turns', 'ON_Giladi_DTTurns',
+                'ON_Giladi_Shuffle', 'ON_Giladi_Agility', 'ON_Giladi_Doorway', 'ON_2min_VR_Sitting',
+                'ON_2min_VR_Standing', 'ON_2min_VR_Walking', 'ON_30s_T1', 'ON_Trial1', 'ON_30s_T2',
+                'ON_Trial2', 'ON_30s_T3', 'ON_Trial3', 'ON_30s_T4', 'ON_Trial4', 'ON_30s_T5',
+                'ON_Trial5', 'ON_30s_T6', 'ON_Trial6', 'ON_30s_T7', 'ON_Trial7', 'ON_30s_T8',
+                'ON_Trial8', 'ON_30s_T9', 'ON_Trial9', 'ON_30s_T10', 'ON_Trial10'
             ];
 
             // --- DOM ELEMENTS ---
             const startButton = document.getElementById('startButton');
             const stopButton = document.getElementById('stopButton');
             const exportButton = document.getElementById('exportButton');
-            const trialList = document.getElementById('trialList'); // New <ul>
+            const trialList = document.getElementById('trialList');
             const notesInput = document.getElementById('notesInput');
             const customTagInput = document.getElementById('customTagInput');
             const addTagButton = document.getElementById('addTagButton');
             const removeTagButton = document.getElementById('removeTagButton');
-            // 'Move Up' and 'Move Down' buttons are removed
             const discardLastButton = document.getElementById('discardLastButton');
             const resetLogButton = document.getElementById('resetLogButton');
             const logBody = document.getElementById('logBody');
             const emptyLogMessage = document.getElementById('emptyLogMessage');
             const clockElement = document.getElementById('realTimeClock');
-            
-            // Modal Elements
+            const activeSelectionText = document.getElementById('activeSelectionText');
+            const editModeToggle = document.getElementById('editModeToggle');
+            const activeSelectionDisplay = document.getElementById('activeSelectionDisplay');
+
+            // Modal
             const confirmationModal = document.getElementById('confirmationModal');
             const modalContent = document.getElementById('modalContent');
             const cancelResetButton = document.getElementById('cancelResetButton');
             const confirmResetButton = document.getElementById('confirmResetButton');
 
             // --- FUNCTIONS ---
-            
-            /**
-             * Updates the real-time clock
-             */
             function updateClock() {
                 if (clockElement) {
                     const fullString = new Date().toString();
                     const parts = fullString.split(' ');
-                    // parts[4] is the time (e.g., 22:01:21)
-                    // parts.slice(5) are the timezone parts
                     const clockText = parts[4] + ' ' + parts.slice(5).join(' ');
                     clockElement.textContent = clockText;
                 }
@@ -301,77 +226,53 @@
                 }, 200);
             }
 
-            /**
-             * Handles clicking on a trial item in the list
-             * @param {Event} e - The click event
-             */
-            function handleTrialClick(e) {
-                if (isTiming) return; // Don't allow changing selection while timing
-                
-                const clickedItem = e.currentTarget; // Get the <li> that was clicked
+            function updateSelectionDisplay(name) {
+                activeSelectionText.textContent = name || 'None';
+            }
 
-                // Remove 'selected' from previously selected item
-                if (selectedTrialElement) {
-                    selectedTrialElement.classList.remove('selected');
-                }
+            function handleTrialClick(e) {
+                if (isTiming) return; 
                 
-                // Add 'selected' to the new item
+                const clickedItem = e.currentTarget;
+                if (selectedTrialElement) selectedTrialElement.classList.remove('selected');
+                
                 clickedItem.classList.add('selected');
                 selectedTrialElement = clickedItem;
                 
+                updateSelectionDisplay(clickedItem.textContent);
                 updateButtonStates();
             }
 
-            /**
-             * Creates a single trial list item
-             * @param {string} name - The text content for the trial
-             * @returns {HTMLLIElement}
-             */
             function createTrialItem(name) {
                 const li = document.createElement('li');
-                li.className = 'trial-item p-3 hover:bg-gray-100 cursor-pointer border-b last:border-b-0';
+                li.className = 'trial-item p-3 hover:bg-gray-100 cursor-pointer border-b last:border-b-0 select-none';
                 li.textContent = name;
-                li.draggable = true; // Required for Sortable.js
                 li.addEventListener('click', handleTrialClick);
                 return li;
             }
 
-            /**
-             * Populates the trial list from the trialNames Array
-             */
             function populateTrialList(selectName = null) {
-                trialList.innerHTML = ''; // Clear existing options
-                
+                trialList.innerHTML = '';
                 trialNames.forEach(name => {
                     const li = createTrialItem(name);
                     trialList.appendChild(li);
-                    
-                    if (name === selectName) {
-                        li.click(); // Select this item
-                    }
+                    if (name === selectName) li.click();
                 });
 
-                // Select first item if nothing else is selected
                 if (!selectedTrialElement && trialList.firstChild) {
                     trialList.firstChild.click();
                 }
-                
                 updateButtonStates();
             }
 
-            /**
-             * Updates the trialNames array to match the DOM order after drag/drop
-             */
             function updateTrialNamesFromDOM() {
                 trialNames = [];
                 const items = trialList.querySelectorAll('li.trial-item');
                 items.forEach(item => trialNames.push(item.textContent));
-                // Note: The 'selected' item remains the same, just its position changes.
             }
 
             function renderLog() {
                 logBody.innerHTML = ''; 
-                
                 if (logData.length === 0) {
                     emptyLogMessage.classList.remove('hidden');
                     exportButton.disabled = true;
@@ -379,10 +280,8 @@
                     emptyLogMessage.classList.add('hidden');
                     exportButton.disabled = false;
                 }
-
                 logData.forEach(entry => {
                     const row = document.createElement('tr');
-                    
                     row.innerHTML = `
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${entry.trial}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm ${entry.event === 'Start' ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}">${entry.event}</td>
@@ -391,71 +290,55 @@
                     `;
                     logBody.appendChild(row);
                 });
-                
                 updateButtonStates();
             }
 
             function handleAddTag() {
                 const newTag = customTagInput.value.trim();
                 if (newTag && !trialNames.includes(newTag)) {
-                    trialNames.push(newTag);  // Add to the Array
-                    
-                    // Add directly to DOM instead of full re-render
+                    trialNames.push(newTag);
                     const li = createTrialItem(newTag);
                     trialList.appendChild(li);
-                    li.click(); // Select the newly added tag
-                    
+                    li.click();
+                    li.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     customTagInput.value = '';
                 } else if (trialNames.includes(newTag)) {
-                    // If tag already exists, just select it
                     const allItems = Array.from(trialList.querySelectorAll('li.trial-item'));
                     const itemToSelect = allItems.find(item => item.textContent === newTag);
-                    if (itemToSelect) itemToSelect.click();
+                    if (itemToSelect) {
+                        itemToSelect.click();
+                        itemToSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
                     customTagInput.value = '';
                 }
             }
             
             function handleRemoveTag() {
-                if (!selectedTrialElement) return; // Nothing selected
-                
+                if (!selectedTrialElement) return;
                 const nameToRemove = selectedTrialElement.textContent;
                 trialNames = trialNames.filter(name => name !== nameToRemove);
-                
                 const itemToRemove = selectedTrialElement;
-                
-                // Select next item or previous item before removing
                 const allItems = Array.from(trialList.querySelectorAll('li.trial-item'));
                 const currentIndex = allItems.indexOf(itemToRemove);
                 
-                if (currentIndex < allItems.length - 1) { // Not the last item
-                    allItems[currentIndex + 1].click();
-                } else if (currentIndex > 0) { // Is the last item, select previous
-                    allItems[currentIndex - 1].click();
-                } else { // It was the only item
+                if (currentIndex < allItems.length - 1) allItems[currentIndex + 1].click();
+                else if (currentIndex > 0) allItems[currentIndex - 1].click();
+                else {
                     selectedTrialElement = null;
+                    updateSelectionDisplay('None');
                 }
-
                 itemToRemove.remove();
                 updateButtonStates();
             }
 
             function handleStart() {
-                if (!selectedTrialElement) {
-                    console.error("No trial selected");
-                    return;
-                }
-                
+                if (!selectedTrialElement) return;
                 isTiming = true;
                 currentTrialName = selectedTrialElement.textContent;
                 const notes = notesInput.value.trim();
                 const timestamp = new Date().toString();
 
-                logData.push({
-                    trial: currentTrialName,
-                    event: 'Start',
-                    notes: notes,
-                    timestamp: timestamp
-                });
+                logData.push({ trial: currentTrialName, event: 'Start', notes: notes, timestamp: timestamp });
                 
                 notesInput.value = '';
                 renderLog();
@@ -465,33 +348,26 @@
             function handleStop() {
                 isTiming = false;
                 const timestamp = new Date().toString();
-
-                logData.push({
-                    trial: currentTrialName,
-                    event: 'Stop',
-                    notes: '',
-                    timestamp: timestamp
-                });
-
+                logData.push({ trial: currentTrialName, event: 'Stop', notes: '', timestamp: timestamp });
                 renderLog();
-                updateButtonStates();
                 
-                // --- Auto-advance to next trial ---
-                if (!selectedTrialElement) return;
-                
-                const allItems = Array.from(trialList.querySelectorAll('li.trial-item'));
-                const currentIndex = allItems.indexOf(selectedTrialElement);
-                
-                if (currentIndex < allItems.length - 1) {
-                    allItems[currentIndex + 1].click(); // Click the next item in the list
+                // Auto-advance
+                if (selectedTrialElement) {
+                    const allItems = Array.from(trialList.querySelectorAll('li.trial-item'));
+                    const currentIndex = allItems.indexOf(selectedTrialElement);
+                    
+                    if (currentIndex < allItems.length - 1) {
+                        const nextItem = allItems[currentIndex + 1];
+                        nextItem.click();
+                        // Scroll the next item into view automatically!
+                        nextItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }
                 }
+                updateButtonStates();
             }
             
             function handleDiscardLast() {
-                if (logData.length > 0) {
-                    logData.pop();
-                }
-                
+                if (logData.length > 0) logData.pop();
                 const lastEntry = logData.length > 0 ? logData[logData.length - 1] : null;
                 
                 if (!lastEntry) {
@@ -503,13 +379,14 @@
                         currentTrialName = lastEntry.trial;
                         notesInput.value = lastEntry.notes || '';
                         
-                        // Re-select the trial associated with the START
                         const allItems = Array.from(trialList.querySelectorAll('li.trial-item'));
                         const itemToSelect = allItems.find(item => item.textContent === currentTrialName);
-                        if (itemToSelect) itemToSelect.click();
+                        if (itemToSelect) {
+                            itemToSelect.click();
+                            itemToSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
                     }
                 }
-                
                 renderLog();
                 updateButtonStates();
             }
@@ -525,10 +402,9 @@
             }
 
             function updateButtonStates() {
-                // If timing, disable START, list, and all tag/note management
                 startButton.disabled = isTiming;
                 
-                // Disable list interaction
+                // Visual feedback for timing state on list
                 trialList.classList.toggle('opacity-50', isTiming);
                 trialList.classList.toggle('pointer-events-none', isTiming);
                 
@@ -536,31 +412,26 @@
                 customTagInput.disabled = isTiming;
                 addTagButton.disabled = isTiming;
                 
-                // If NOT timing, disable STOP
                 stopButton.disabled = !isTiming;
-
-                // Log-dependent buttons
                 discardLastButton.disabled = logData.length === 0;
                 resetLogButton.disabled = logData.length === 0;
                 
-                // Tag management buttons (when not timing)
                 const hasSelection = selectedTrialElement !== null;
                 removeTagButton.disabled = !hasSelection || isTiming;
+                
+                // Disable sort toggle if timing
+                editModeToggle.disabled = isTiming;
             }
 
             function handleExport() {
                 if (logData.length === 0) return;
-
-                let csvContent = "data:text/csv;charset=utf-8,";
-                csvContent += "Trial,Event,Notes,Timestamp\n"; 
-
+                let csvContent = "data:text/csv;charset=utf-8,Trial,Event,Notes,Timestamp\n"; 
                 logData.forEach(entry => {
                     const notes = `"${(entry.notes || '').replace(/"/g, '""')}"`;
                     const timestamp = `"${entry.timestamp}"`;
                     const row = [entry.trial, entry.event, notes, timestamp].join(",");
                     csvContent += row + "\n";
                 });
-
                 const encodedUri = encodeURI(csvContent);
                 const link = document.createElement("a");
                 link.setAttribute("href", encodedUri);
@@ -571,41 +442,47 @@
             }
             
             // --- INITIALIZATION ---
-            updateClock(); // Initial clock update
-            setInterval(updateClock, 1000); // Update clock every second
+            updateClock(); 
+            setInterval(updateClock, 1000); 
 
             populateTrialList();
-            updateButtonStates();
             renderLog();
 
-            // Initialize Sortable.js
-            new Sortable(trialList, {
+            // Initialize Sortable in DISABLED state by default
+            sortableInstance = new Sortable(trialList, {
                 animation: 150,
-                ghostClass: 'sortable-ghost', // Class for the ghost element
-                onEnd: updateTrialNamesFromDOM // Callback when drag ends
+                ghostClass: 'sortable-ghost',
+                disabled: true, // Start locked!
+                onEnd: updateTrialNamesFromDOM
             });
 
             // --- EVENT LISTENERS ---
             startButton.addEventListener('click', handleStart);
             stopButton.addEventListener('click', handleStop);
             exportButton.addEventListener('click', handleExport);
-            
-            // Tag Management
             addTagButton.addEventListener('click', handleAddTag);
             removeTagButton.addEventListener('click', handleRemoveTag);
-            customTagInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    handleAddTag();
-                }
-            });
-            
-            // Log Management
+            customTagInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleAddTag(); });
             discardLastButton.addEventListener('click', handleDiscardLast);
             resetLogButton.addEventListener('click', showModal);
-            
-            // Modal Listeners
             cancelResetButton.addEventListener('click', hideModal);
             confirmResetButton.addEventListener('click', executeReset);
+
+            // Toggle Edit Mode Listener
+            editModeToggle.addEventListener('change', (e) => {
+                const isEditing = e.target.checked;
+                // Enable/Disable sortable based on checkbox
+                sortableInstance.option('disabled', !isEditing);
+                
+                // Visual cues
+                if (isEditing) {
+                    trialList.classList.add('bg-yellow-50', 'border-yellow-300');
+                    trialList.classList.remove('bg-white');
+                } else {
+                    trialList.classList.remove('bg-yellow-50', 'border-yellow-300');
+                    trialList.classList.add('bg-white');
+                }
+            });
 
         });
     </script>
