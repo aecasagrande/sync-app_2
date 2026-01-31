@@ -11,130 +11,87 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
-        
-        /* Custom scrollbar */
         .log-container::-webkit-scrollbar, #trialList::-webkit-scrollbar { width: 8px; }
         .log-container::-webkit-scrollbar-track, #trialList::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 10px; }
         .log-container::-webkit-scrollbar-thumb, #trialList::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 10px; }
+        .trial-item.selected { background-color: #3b82f6; color: white; font-weight: 500; }
+        .sortable-ghost { background-color: #dbeafe; opacity: 0.7; }
+        .toggle-checkbox:checked { right: 0; border-color: #3b82f6; }
+        .toggle-checkbox:checked + .toggle-label { background-color: #3b82f6; }
         
-        /* Selection Styles */
-        .trial-item.selected {
-            background-color: #3b82f6; 
-            color: white;
-            font-weight: 500;
-        }
-        
-        /* Dragging Styles */
-        .sortable-ghost {
-            background-color: #dbeafe; 
-            opacity: 0.7;
-        }
-
-        /* Toggle Switch Styles */
-        .toggle-checkbox:checked {
-            right: 0;
-            border-color: #3b82f6;
-        }
-        .toggle-checkbox:checked + .toggle-label {
-            background-color: #3b82f6;
-        }
+        /* New Timer Style */
+        .timer-active { background-color: #fee2e2 !important; border-color: #ef4444 !important; }
+        .timer-text { font-family: 'Monaco', 'Consolas', monospace; }
     </style>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
 
     <div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-3xl">
-        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">
-            Time Sync App
-        </h1>
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">Time Sync App</h1>
 
         <p id="realTimeClock" class="text-xl font-medium text-center text-gray-600 mb-6 font-mono"></p>
 
         <div class="mb-6">
             <div class="flex justify-between items-end mb-2">
-                <label class="block text-sm font-medium text-gray-700">
-                    1. Select Trial
-                </label>
-                
+                <label class="block text-sm font-medium text-gray-700">1. Select Trial</label>
                 <div class="flex items-center">
-                    <span class="mr-2 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Lock List
-                    </span>
+                    <span class="mr-2 text-xs font-medium text-gray-500 uppercase tracking-wider">Lock</span>
                     <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
                         <input type="checkbox" name="toggle" id="editModeToggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer border-gray-300"/>
                         <label for="editModeToggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
                     </div>
-                    <span class="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Edit Order
-                    </span>
+                    <span class="text-xs font-medium text-gray-500 uppercase tracking-wider">Edit</span>
                 </div>
             </div>
 
-            <div id="activeSelectionDisplay" class="w-full p-4 mb-2 bg-blue-50 border-2 border-blue-200 rounded-lg text-center shadow-sm">
-                <span class="text-gray-500 text-xs uppercase font-bold block mb-1">Currently Selected</span>
+            <div id="activeSelectionDisplay" class="w-full p-4 mb-2 bg-blue-50 border-2 border-blue-200 rounded-lg text-center shadow-sm transition-all duration-300">
+                <span id="selectionHeader" class="text-gray-500 text-xs uppercase font-bold block mb-1">Currently Selected</span>
                 <span id="activeSelectionText" class="text-lg font-bold text-blue-800">None</span>
+                <div id="countdownDisplay" class="hidden text-3xl font-black text-red-600 timer-text mt-1">00:00</div>
             </div>
 
-            <ul id="trialList" class="w-full max-h-48 overflow-y-auto border border-gray-300 rounded-lg bg-white shadow-sm transition-colors duration-200">
-            </ul>
+            <ul id="trialList" class="w-full max-h-48 overflow-y-auto border border-gray-300 rounded-lg bg-white shadow-sm"></ul>
             
             <div class="mt-4">
-                <label for="notesInput" class="block text-sm font-medium text-gray-700 mb-2">
-                    2. Add Notes (Optional)
-                </label>
-                <textarea id="notesInput" rows="2" placeholder="Enter notes..." class="block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:bg-gray-50"></textarea>
+                <label for="notesInput" class="block text-sm font-medium text-gray-700 mb-2">2. Add Notes (Optional)</label>
+                <textarea id="notesInput" rows="2" placeholder="Enter notes..." class="block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"></textarea>
             </div>
             
             <div class="flex flex-col sm:flex-row gap-3 mt-4">
-                <input type="text" id="customTagInput" placeholder="Type new tag name..." class="flex-grow block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="text" id="customTagInput" placeholder="Type new tag (e.g. Test_5min)..." class="flex-grow block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
             <div class="flex gap-3 mt-3">
-                <button id="addTagButton" class="w-full px-5 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition duration-200 disabled:opacity-50">
-                    Add Tag
-                </button>
-                 <button id="removeTagButton" class="w-full px-5 py-2 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700 transition duration-200 disabled:opacity-50">
-                    Remove Selected
-                </button>
+                <button id="addTagButton" class="w-full px-5 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition duration-200 disabled:opacity-50">Add Tag</button>
+                <button id="removeTagButton" class="w-full px-5 py-2 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700 transition duration-200 disabled:opacity-50">Remove Selected</button>
             </div>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-            <button id="startButton" class="w-full py-4 px-6 bg-green-500 text-white font-bold text-lg rounded-lg shadow-lg hover:bg-green-600 transition duration-200 disabled:opacity-50">
-                START
-            </button>
-            <button id="stopButton" class="w-full py-4 px-6 bg-red-500 text-white font-bold text-lg rounded-lg shadow-lg hover:bg-red-600 transition duration-200 disabled:opacity-50">
-                STOP
-            </button>
+            <button id="startButton" class="w-full py-4 px-6 bg-green-500 text-white font-bold text-lg rounded-lg shadow-lg hover:bg-green-600 transition duration-200 disabled:opacity-50">START</button>
+            <button id="stopButton" class="w-full py-4 px-6 bg-red-500 text-white font-bold text-lg rounded-lg shadow-lg hover:bg-red-600 transition duration-200 disabled:opacity-50">STOP</button>
         </div>
 
         <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
             <h2 class="text-2xl font-semibold text-gray-700">Event Log</h2>
             <div class="flex gap-2 flex-wrap">
-                <button id="discardLastButton" class="px-4 py-2 bg-yellow-500 text-white text-sm font-medium rounded-lg shadow-md hover:bg-yellow-600 disabled:opacity-50">
-                    Discard Last
-                </button>
-                <button id="resetLogButton" class="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg shadow-md hover:bg-red-700 disabled:opacity-50">
-                    Reset Log
-                </button>
-                <button id="exportButton" class="px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-lg shadow-md hover:bg-gray-700 disabled:opacity-50">
-                    Export CSV
-                </button>
+                <button id="discardLastButton" class="px-4 py-2 bg-yellow-500 text-white text-sm font-medium rounded-lg shadow-md hover:bg-yellow-600 disabled:opacity-50">Discard Last</button>
+                <button id="resetLogButton" class="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg shadow-md hover:bg-red-700 disabled:opacity-50">Reset Log</button>
+                <button id="exportButton" class="px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-lg shadow-md hover:bg-gray-700 disabled:opacity-50">Export CSV</button>
             </div>
         </div>
 
         <div class="log-container w-full max-h-80 overflow-y-auto border border-gray-200 rounded-lg bg-gray-50 p-1">
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-100 sticky top-0">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trial</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Event</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Notes</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Timestamp</th>
-                        </tr>
-                    </thead>
-                    <tbody id="logBody" class="bg-white divide-y divide-gray-200"></tbody>
-                </table>
-            </div>
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-100 sticky top-0">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trial</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Event</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Notes</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Timestamp</th>
+                    </tr>
+                </thead>
+                <tbody id="logBody" class="bg-white divide-y divide-gray-200"></tbody>
+            </table>
         </div>
         <p id="emptyLogMessage" class="text-center text-gray-500 pt-4">Log is empty.</p>
     </div>
@@ -157,8 +114,10 @@
             let isTiming = false;
             let currentTrialName = '';
             let selectedTrialElement = null; 
-            let sortableInstance = null; // Store sortable instance to toggle it
-            
+            let sortableInstance = null;
+            let timerInterval = null;
+            let remainingSeconds = 0;
+
             let trialNames = [
                 'OFF_5min_Sitting', 'OFF_5min_Standing', 'OFF_5min_Walking', 'OFF_Giladi_Walk',
                 'OFF_Giladi_DTWalk', 'OFF_Giladi_Carrying', 'OFF_Giladi_Turns', 'OFF_Giladi_DTTurns',
@@ -191,58 +150,135 @@
             const emptyLogMessage = document.getElementById('emptyLogMessage');
             const clockElement = document.getElementById('realTimeClock');
             const activeSelectionText = document.getElementById('activeSelectionText');
-            const editModeToggle = document.getElementById('editModeToggle');
+            const countdownDisplay = document.getElementById('countdownDisplay');
             const activeSelectionDisplay = document.getElementById('activeSelectionDisplay');
-
-            // Modal
+            const selectionHeader = document.getElementById('selectionHeader');
+            const editModeToggle = document.getElementById('editModeToggle');
             const confirmationModal = document.getElementById('confirmationModal');
             const modalContent = document.getElementById('modalContent');
             const cancelResetButton = document.getElementById('cancelResetButton');
             const confirmResetButton = document.getElementById('confirmResetButton');
 
-            // --- FUNCTIONS ---
-            function updateClock() {
-                if (clockElement) {
-                    const fullString = new Date().toString();
-                    const parts = fullString.split(' ');
-                    const clockText = parts[4] + ' ' + parts.slice(5).join(' ');
-                    clockElement.textContent = clockText;
-                }
-            }
-            
-            function showModal() {
-                confirmationModal.classList.remove('hidden');
-                setTimeout(() => {
-                     confirmationModal.classList.remove('opacity-0');
-                     modalContent.classList.remove('scale-95');
-                }, 10);
-            }
-            
-            function hideModal() {
-                confirmationModal.classList.add('opacity-0');
-                modalContent.classList.add('scale-95');
-                setTimeout(() => {
-                    confirmationModal.classList.add('hidden');
-                }, 200);
+            // --- AUDIO BEEP FUNCTION ---
+            function playBeep() {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // A5 note
+                gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                
+                oscillator.start();
+                gainNode.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 1);
+                oscillator.stop(audioCtx.currentTime + 1);
             }
 
-            function updateSelectionDisplay(name) {
-                activeSelectionText.textContent = name || 'None';
+            // --- HELPER FUNCTIONS ---
+            function getTrialDuration(name) {
+                if (name.includes('5min')) return 300;
+                if (name.includes('2min')) return 120;
+                if (name.includes('30s')) return 30;
+                return 0; // No timer
+            }
+
+            function formatTime(seconds) {
+                const mins = Math.floor(seconds / 60);
+                const secs = seconds % 60;
+                return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            }
+
+            function updateClock() {
+                const parts = new Date().toString().split(' ');
+                clockElement.textContent = parts[4] + ' ' + parts.slice(5).join(' ');
             }
 
             function handleTrialClick(e) {
-                if (isTiming) return; 
-                
+                if (isTiming) return;
                 const clickedItem = e.currentTarget;
                 if (selectedTrialElement) selectedTrialElement.classList.remove('selected');
-                
                 clickedItem.classList.add('selected');
                 selectedTrialElement = clickedItem;
-                
-                updateSelectionDisplay(clickedItem.textContent);
+                activeSelectionText.textContent = clickedItem.textContent;
                 updateButtonStates();
             }
 
+            function handleStart() {
+                if (!selectedTrialElement) return;
+                isTiming = true;
+                currentTrialName = selectedTrialElement.textContent;
+                
+                // Logging
+                logData.push({ 
+                    trial: currentTrialName, 
+                    event: 'Start', 
+                    notes: notesInput.value.trim(), 
+                    timestamp: new Date().toString() 
+                });
+                notesInput.value = '';
+                renderLog();
+
+                // Timer Setup
+                remainingSeconds = getTrialDuration(currentTrialName);
+                if (remainingSeconds > 0) {
+                    startCountdown();
+                }
+                
+                updateButtonStates();
+            }
+
+            function startCountdown() {
+                activeSelectionDisplay.classList.add('timer-active');
+                selectionHeader.textContent = "Time Remaining";
+                countdownDisplay.classList.remove('hidden');
+                countdownDisplay.textContent = formatTime(remainingSeconds);
+
+                timerInterval = setInterval(() => {
+                    remainingSeconds--;
+                    countdownDisplay.textContent = formatTime(remainingSeconds);
+
+                    if (remainingSeconds <= 0) {
+                        clearInterval(timerInterval);
+                        playBeep();
+                        handleStop();
+                    }
+                }, 1000);
+            }
+
+            function handleStop() {
+                clearInterval(timerInterval);
+                isTiming = false;
+                
+                // Reset UI
+                activeSelectionDisplay.classList.remove('timer-active');
+                selectionHeader.textContent = "Currently Selected";
+                countdownDisplay.classList.add('hidden');
+
+                logData.push({ 
+                    trial: currentTrialName, 
+                    event: 'Stop', 
+                    notes: '', 
+                    timestamp: new Date().toString() 
+                });
+                renderLog();
+
+                // Auto-advance
+                if (selectedTrialElement) {
+                    const allItems = Array.from(trialList.querySelectorAll('li.trial-item'));
+                    const currentIndex = allItems.indexOf(selectedTrialElement);
+                    if (currentIndex < allItems.length - 1) {
+                        const nextItem = allItems[currentIndex + 1];
+                        nextItem.click();
+                        nextItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }
+                }
+                updateButtonStates();
+            }
+
+            // --- CORE FUNCTIONALITY ---
             function createTrialItem(name) {
                 const li = document.createElement('li');
                 li.className = 'trial-item p-3 hover:bg-gray-100 cursor-pointer border-b last:border-b-0 select-none';
@@ -251,35 +287,18 @@
                 return li;
             }
 
-            function populateTrialList(selectName = null) {
+            function populateTrialList() {
                 trialList.innerHTML = '';
-                trialNames.forEach(name => {
-                    const li = createTrialItem(name);
-                    trialList.appendChild(li);
-                    if (name === selectName) li.click();
-                });
-
-                if (!selectedTrialElement && trialList.firstChild) {
-                    trialList.firstChild.click();
-                }
+                trialNames.forEach(name => trialList.appendChild(createTrialItem(name)));
+                if (trialList.firstChild) trialList.firstChild.click();
                 updateButtonStates();
-            }
-
-            function updateTrialNamesFromDOM() {
-                trialNames = [];
-                const items = trialList.querySelectorAll('li.trial-item');
-                items.forEach(item => trialNames.push(item.textContent));
             }
 
             function renderLog() {
                 logBody.innerHTML = ''; 
-                if (logData.length === 0) {
-                    emptyLogMessage.classList.remove('hidden');
-                    exportButton.disabled = true;
-                } else {
-                    emptyLogMessage.classList.add('hidden');
-                    exportButton.disabled = false;
-                }
+                emptyLogMessage.classList.toggle('hidden', logData.length > 0);
+                exportButton.disabled = logData.length === 0;
+                
                 logData.forEach(entry => {
                     const row = document.createElement('tr');
                     row.innerHTML = `
@@ -290,202 +309,80 @@
                     `;
                     logBody.appendChild(row);
                 });
-                updateButtonStates();
-            }
-
-            function handleAddTag() {
-                const newTag = customTagInput.value.trim();
-                if (newTag && !trialNames.includes(newTag)) {
-                    trialNames.push(newTag);
-                    const li = createTrialItem(newTag);
-                    trialList.appendChild(li);
-                    li.click();
-                    li.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    customTagInput.value = '';
-                } else if (trialNames.includes(newTag)) {
-                    const allItems = Array.from(trialList.querySelectorAll('li.trial-item'));
-                    const itemToSelect = allItems.find(item => item.textContent === newTag);
-                    if (itemToSelect) {
-                        itemToSelect.click();
-                        itemToSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }
-                    customTagInput.value = '';
-                }
-            }
-            
-            function handleRemoveTag() {
-                if (!selectedTrialElement) return;
-                const nameToRemove = selectedTrialElement.textContent;
-                trialNames = trialNames.filter(name => name !== nameToRemove);
-                const itemToRemove = selectedTrialElement;
-                const allItems = Array.from(trialList.querySelectorAll('li.trial-item'));
-                const currentIndex = allItems.indexOf(itemToRemove);
-                
-                if (currentIndex < allItems.length - 1) allItems[currentIndex + 1].click();
-                else if (currentIndex > 0) allItems[currentIndex - 1].click();
-                else {
-                    selectedTrialElement = null;
-                    updateSelectionDisplay('None');
-                }
-                itemToRemove.remove();
-                updateButtonStates();
-            }
-
-            function handleStart() {
-                if (!selectedTrialElement) return;
-                isTiming = true;
-                currentTrialName = selectedTrialElement.textContent;
-                const notes = notesInput.value.trim();
-                const timestamp = new Date().toString();
-
-                logData.push({ trial: currentTrialName, event: 'Start', notes: notes, timestamp: timestamp });
-                
-                notesInput.value = '';
-                renderLog();
-                updateButtonStates();
-            }
-
-            function handleStop() {
-                isTiming = false;
-                const timestamp = new Date().toString();
-                logData.push({ trial: currentTrialName, event: 'Stop', notes: '', timestamp: timestamp });
-                renderLog();
-                
-                // Auto-advance
-                if (selectedTrialElement) {
-                    const allItems = Array.from(trialList.querySelectorAll('li.trial-item'));
-                    const currentIndex = allItems.indexOf(selectedTrialElement);
-                    
-                    if (currentIndex < allItems.length - 1) {
-                        const nextItem = allItems[currentIndex + 1];
-                        nextItem.click();
-                        // Scroll the next item into view automatically!
-                        nextItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                    }
-                }
-                updateButtonStates();
-            }
-            
-            function handleDiscardLast() {
-                if (logData.length > 0) logData.pop();
-                const lastEntry = logData.length > 0 ? logData[logData.length - 1] : null;
-                
-                if (!lastEntry) {
-                    isTiming = false;
-                    currentTrialName = '';
-                } else {
-                    isTiming = lastEntry.event === 'Start';
-                    if (isTiming) {
-                        currentTrialName = lastEntry.trial;
-                        notesInput.value = lastEntry.notes || '';
-                        
-                        const allItems = Array.from(trialList.querySelectorAll('li.trial-item'));
-                        const itemToSelect = allItems.find(item => item.textContent === currentTrialName);
-                        if (itemToSelect) {
-                            itemToSelect.click();
-                            itemToSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        }
-                    }
-                }
-                renderLog();
-                updateButtonStates();
-            }
-
-            function executeReset() {
-                logData = [];
-                isTiming = false;
-                currentTrialName = '';
-                notesInput.value = '';
-                renderLog();
-                updateButtonStates();
-                hideModal();
             }
 
             function updateButtonStates() {
                 startButton.disabled = isTiming;
-                
-                // Visual feedback for timing state on list
+                stopButton.disabled = !isTiming;
                 trialList.classList.toggle('opacity-50', isTiming);
                 trialList.classList.toggle('pointer-events-none', isTiming);
-                
                 notesInput.disabled = isTiming;
-                customTagInput.disabled = isTiming;
-                addTagButton.disabled = isTiming;
-                
-                stopButton.disabled = !isTiming;
-                discardLastButton.disabled = logData.length === 0;
-                resetLogButton.disabled = logData.length === 0;
-                
-                const hasSelection = selectedTrialElement !== null;
-                removeTagButton.disabled = !hasSelection || isTiming;
-                
-                // Disable sort toggle if timing
                 editModeToggle.disabled = isTiming;
+                discardLastButton.disabled = logData.length === 0 || isTiming;
             }
 
-            function handleExport() {
-                if (logData.length === 0) return;
-                let csvContent = "data:text/csv;charset=utf-8,Trial,Event,Notes,Timestamp\n"; 
-                logData.forEach(entry => {
-                    const notes = `"${(entry.notes || '').replace(/"/g, '""')}"`;
-                    const timestamp = `"${entry.timestamp}"`;
-                    const row = [entry.trial, entry.event, notes, timestamp].join(",");
-                    csvContent += row + "\n";
-                });
-                const encodedUri = encodeURI(csvContent);
-                const link = document.createElement("a");
-                link.setAttribute("href", encodedUri);
-                link.setAttribute("download", "time_sync_log.csv");
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            }
-            
             // --- INITIALIZATION ---
-            updateClock(); 
-            setInterval(updateClock, 1000); 
-
+            setInterval(updateClock, 1000);
+            updateClock();
             populateTrialList();
-            renderLog();
 
-            // Initialize Sortable in DISABLED state by default
             sortableInstance = new Sortable(trialList, {
                 animation: 150,
                 ghostClass: 'sortable-ghost',
-                disabled: true, // Start locked!
-                onEnd: updateTrialNamesFromDOM
+                disabled: true,
+                onEnd: () => {
+                    trialNames = Array.from(trialList.querySelectorAll('li')).map(li => li.textContent);
+                }
             });
 
             // --- EVENT LISTENERS ---
             startButton.addEventListener('click', handleStart);
             stopButton.addEventListener('click', handleStop);
-            exportButton.addEventListener('click', handleExport);
-            addTagButton.addEventListener('click', handleAddTag);
-            removeTagButton.addEventListener('click', handleRemoveTag);
-            customTagInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleAddTag(); });
-            discardLastButton.addEventListener('click', handleDiscardLast);
-            resetLogButton.addEventListener('click', showModal);
-            cancelResetButton.addEventListener('click', hideModal);
-            confirmResetButton.addEventListener('click', executeReset);
-
-            // Toggle Edit Mode Listener
-            editModeToggle.addEventListener('change', (e) => {
-                const isEditing = e.target.checked;
-                // Enable/Disable sortable based on checkbox
-                sortableInstance.option('disabled', !isEditing);
-                
-                // Visual cues
-                if (isEditing) {
-                    trialList.classList.add('bg-yellow-50', 'border-yellow-300');
-                    trialList.classList.remove('bg-white');
-                } else {
-                    trialList.classList.remove('bg-yellow-50', 'border-yellow-300');
-                    trialList.classList.add('bg-white');
+            addTagButton.addEventListener('click', () => {
+                const val = customTagInput.value.trim();
+                if (val && !trialNames.includes(val)) {
+                    trialNames.push(val);
+                    const li = createTrialItem(val);
+                    trialList.appendChild(li);
+                    li.click();
+                    customTagInput.value = '';
                 }
             });
-
+            removeTagButton.addEventListener('click', () => {
+                if (selectedTrialElement) {
+                    trialNames = trialNames.filter(n => n !== selectedTrialElement.textContent);
+                    selectedTrialElement.remove();
+                    if (trialList.firstChild) trialList.firstChild.click();
+                }
+            });
+            editModeToggle.addEventListener('change', (e) => {
+                sortableInstance.option('disabled', !e.target.checked);
+                trialList.classList.toggle('bg-yellow-50', e.target.checked);
+            });
+            resetLogButton.addEventListener('click', () => {
+                confirmationModal.classList.remove('hidden');
+                setTimeout(() => { confirmationModal.classList.remove('opacity-0'); modalContent.classList.remove('scale-95'); }, 10);
+            });
+            cancelResetButton.addEventListener('click', () => {
+                confirmationModal.classList.add('opacity-0');
+                setTimeout(() => confirmationModal.classList.add('hidden'), 200);
+            });
+            confirmResetButton.addEventListener('click', () => {
+                logData = [];
+                renderLog();
+                handleStop();
+                cancelResetButton.click();
+            });
+            exportButton.addEventListener('click', () => {
+                let csv = "Trial,Event,Notes,Timestamp\n" + logData.map(e => `${e.trial},${e.event},"${e.notes}","${e.timestamp}"`).join("\n");
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.setAttribute('href', url);
+                a.setAttribute('download', 'log.csv');
+                a.click();
+            });
         });
     </script>
-
 </body>
 </html>
