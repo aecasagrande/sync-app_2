@@ -25,12 +25,9 @@
     </style>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
-
     <div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-3xl">
         <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">Time Sync App</h1>
-
         <p id="realTimeClock" class="text-xl font-medium text-center text-gray-600 mb-6 font-mono"></p>
-
         <div class="mb-6">
             <div class="flex justify-between items-end mb-2">
                 <label class="block text-sm font-medium text-gray-700">1. Select Trial</label>
@@ -43,13 +40,11 @@
                     <span class="text-xs font-medium text-gray-500 uppercase tracking-wider">Edit</span>
                 </div>
             </div>
-
             <div id="activeSelectionDisplay" class="w-full p-4 mb-2 bg-blue-50 border-2 border-blue-200 rounded-lg text-center shadow-sm transition-all duration-300">
                 <span id="selectionHeader" class="text-gray-500 text-xs uppercase font-bold block mb-1">Currently Selected</span>
                 <span id="activeSelectionText" class="text-lg font-bold text-blue-800">None</span>
                 <div id="countdownDisplay" class="hidden text-3xl font-black text-red-600 timer-text mt-1">00:00</div>
             </div>
-
             <ul id="trialList" class="w-full max-h-48 overflow-y-auto border border-gray-300 rounded-lg bg-white shadow-sm"></ul>
             
             <div class="mt-4">
@@ -65,21 +60,18 @@
                 <button id="removeTagButton" class="w-full px-5 py-2 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700 transition duration-200 disabled:opacity-50">Remove Selected</button>
             </div>
         </div>
-
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
             <button id="startButton" class="w-full py-4 px-6 bg-green-500 text-white font-bold text-lg rounded-lg shadow-lg hover:bg-green-600 transition duration-200 disabled:opacity-50">START</button>
             <button id="stopButton" class="w-full py-4 px-6 bg-red-500 text-white font-bold text-lg rounded-lg shadow-lg hover:bg-red-600 transition duration-200 disabled:opacity-50">STOP</button>
         </div>
-
         <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
             <h2 class="text-2xl font-semibold text-gray-700">Event Log</h2>
             <div class="flex gap-2 flex-wrap">
-                <button id="discardLastButton" class="px-4 py-2 bg-yellow-500 text-white text-sm font-medium rounded-lg shadow-md hover:bg-yellow-600 disabled:opacity-50">Discard Last</button>
+                <button id="discardLastButton" class="px-4 py-2 bg-yellow-500 text-white text-sm font-medium rounded-lg shadow-md hover:bg-yellow-600 disabled:opacity-50">Discard Last Trial</button>
                 <button id="resetLogButton" class="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg shadow-md hover:bg-red-700 disabled:opacity-50">Reset Log</button>
                 <button id="exportButton" class="px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-lg shadow-md hover:bg-gray-700 disabled:opacity-50">Export CSV</button>
             </div>
         </div>
-
         <div class="log-container w-full max-h-80 overflow-y-auto border border-gray-200 rounded-lg bg-gray-50 p-1">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-100 sticky top-0">
@@ -95,7 +87,21 @@
         </div>
         <p id="emptyLogMessage" class="text-center text-gray-500 pt-4">Log is empty.</p>
     </div>
-
+    
+    <!-- Discard Last Trial Confirmation Modal -->
+    <div id="discardModal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50 hidden opacity-0 transition-opacity duration-200">
+        <div id="discardModalContent" class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 transform scale-95 transition-transform duration-200">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">Discard Last Trial?</h3>
+            <p class="text-gray-600 mb-2">This will remove the most recent trial's Start and Stop entries:</p>
+            <p id="discardTrialName" class="text-lg font-semibold text-blue-600 mb-6"></p>
+            <div class="flex justify-end gap-3">
+                <button id="cancelDiscardButton" class="px-5 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300">Cancel</button>
+                <button id="confirmDiscardButton" class="px-5 py-2 bg-yellow-600 text-white font-semibold rounded-lg shadow-md hover:bg-yellow-700">Discard</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Reset Log Confirmation Modal -->
     <div id="confirmationModal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50 hidden opacity-0 transition-opacity duration-200">
         <div id="modalContent" class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 transform scale-95 transition-transform duration-200">
             <h3 class="text-xl font-bold text-gray-800 mb-4">Are you sure?</h3>
@@ -106,7 +112,7 @@
             </div>
         </div>
     </div>
-
+    
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // --- STATE ---
@@ -117,7 +123,6 @@
             let sortableInstance = null;
             let timerInterval = null;
             let remainingSeconds = 0;
-
             let trialNames = [
                 'OFF_5min_Sitting', 'OFF_5min_Standing', 'OFF_5min_Walking', 'OFF_Giladi_Walk',
                 'OFF_Giladi_DTWalk', 'OFF_Giladi_Carrying', 'OFF_Giladi_Turns', 'OFF_Giladi_DTTurns',
@@ -134,7 +139,7 @@
                 'ON_Trial5', 'ON_30s_T6', 'ON_Trial6', 'ON_30s_T7', 'ON_Trial7', 'ON_30s_T8',
                 'ON_Trial8', 'ON_30s_T9', 'ON_Trial9', 'ON_30s_T10', 'ON_Trial10'
             ];
-
+            
             // --- DOM ELEMENTS ---
             const startButton = document.getElementById('startButton');
             const stopButton = document.getElementById('stopButton');
@@ -158,44 +163,49 @@
             const modalContent = document.getElementById('modalContent');
             const cancelResetButton = document.getElementById('cancelResetButton');
             const confirmResetButton = document.getElementById('confirmResetButton');
-
+            
+            // Discard modal elements
+            const discardModal = document.getElementById('discardModal');
+            const discardModalContent = document.getElementById('discardModalContent');
+            const discardTrialName = document.getElementById('discardTrialName');
+            const cancelDiscardButton = document.getElementById('cancelDiscardButton');
+            const confirmDiscardButton = document.getElementById('confirmDiscardButton');
+            
             // --- AUDIO BEEP FUNCTION ---
             function playBeep() {
                 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 const oscillator = audioCtx.createOscillator();
                 const gainNode = audioCtx.createGain();
-
                 oscillator.connect(gainNode);
                 gainNode.connect(audioCtx.destination);
-
                 oscillator.type = 'sine';
-                oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // A5 note
+                oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
                 gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
                 
                 oscillator.start();
                 gainNode.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 1);
                 oscillator.stop(audioCtx.currentTime + 1);
             }
-
+            
             // --- HELPER FUNCTIONS ---
             function getTrialDuration(name) {
                 if (name.includes('5min')) return 300;
                 if (name.includes('2min')) return 120;
                 if (name.includes('30s')) return 30;
-                return 0; // No timer
+                return 0;
             }
-
+            
             function formatTime(seconds) {
                 const mins = Math.floor(seconds / 60);
                 const secs = seconds % 60;
                 return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
             }
-
+            
             function updateClock() {
                 const parts = new Date().toString().split(' ');
                 clockElement.textContent = parts[4] + ' ' + parts.slice(5).join(' ');
             }
-
+            
             function handleTrialClick(e) {
                 if (isTiming) return;
                 const clickedItem = e.currentTarget;
@@ -205,13 +215,12 @@
                 activeSelectionText.textContent = clickedItem.textContent;
                 updateButtonStates();
             }
-
+            
             function handleStart() {
                 if (!selectedTrialElement) return;
                 isTiming = true;
                 currentTrialName = selectedTrialElement.textContent;
                 
-                // Logging
                 logData.push({ 
                     trial: currentTrialName, 
                     event: 'Start', 
@@ -220,8 +229,7 @@
                 });
                 notesInput.value = '';
                 renderLog();
-
-                // Timer Setup
+                
                 remainingSeconds = getTrialDuration(currentTrialName);
                 if (remainingSeconds > 0) {
                     startCountdown();
@@ -229,17 +237,15 @@
                 
                 updateButtonStates();
             }
-
+            
             function startCountdown() {
                 activeSelectionDisplay.classList.add('timer-active');
                 selectionHeader.textContent = "Time Remaining";
                 countdownDisplay.classList.remove('hidden');
                 countdownDisplay.textContent = formatTime(remainingSeconds);
-
                 timerInterval = setInterval(() => {
                     remainingSeconds--;
                     countdownDisplay.textContent = formatTime(remainingSeconds);
-
                     if (remainingSeconds <= 0) {
                         clearInterval(timerInterval);
                         playBeep();
@@ -247,16 +253,14 @@
                     }
                 }, 1000);
             }
-
+            
             function handleStop() {
                 clearInterval(timerInterval);
                 isTiming = false;
                 
-                // Reset UI
                 activeSelectionDisplay.classList.remove('timer-active');
                 selectionHeader.textContent = "Currently Selected";
                 countdownDisplay.classList.add('hidden');
-
                 logData.push({ 
                     trial: currentTrialName, 
                     event: 'Stop', 
@@ -264,8 +268,7 @@
                     timestamp: new Date().toString() 
                 });
                 renderLog();
-
-                // Auto-advance
+                
                 if (selectedTrialElement) {
                     const allItems = Array.from(trialList.querySelectorAll('li.trial-item'));
                     const currentIndex = allItems.indexOf(selectedTrialElement);
@@ -277,7 +280,62 @@
                 }
                 updateButtonStates();
             }
-
+            
+            function getLastCompletedTrial() {
+                // Find the last Stop event
+                for (let i = logData.length - 1; i >= 0; i--) {
+                    if (logData[i].event === 'Stop') {
+                        return logData[i].trial;
+                    }
+                }
+                return null;
+            }
+            
+            function handleDiscardLast() {
+                const lastTrial = getLastCompletedTrial();
+                if (!lastTrial) return;
+                
+                discardTrialName.textContent = lastTrial;
+                discardModal.classList.remove('hidden');
+                setTimeout(() => { 
+                    discardModal.classList.remove('opacity-0'); 
+                    discardModalContent.classList.remove('scale-95'); 
+                }, 10);
+            }
+            
+            function confirmDiscardTrial() {
+                const lastTrial = getLastCompletedTrial();
+                if (!lastTrial) return;
+                
+                // Remove all entries for the last completed trial (both Start and Stop)
+                logData = logData.filter(entry => {
+                    // Keep entries that are NOT from the last trial
+                    if (entry.trial !== lastTrial) return true;
+                    
+                    // For the last trial, find the last pair and remove them
+                    const lastStartIndex = logData.map((e, i) => e.trial === lastTrial && e.event === 'Start' ? i : -1).filter(i => i !== -1).pop();
+                    const lastStopIndex = logData.map((e, i) => e.trial === lastTrial && e.event === 'Stop' ? i : -1).filter(i => i !== -1).pop();
+                    
+                    const currentIndex = logData.indexOf(entry);
+                    return currentIndex !== lastStartIndex && currentIndex !== lastStopIndex;
+                });
+                
+                // Simpler approach: just remove the last two entries if they form a Start-Stop pair
+                if (logData.length >= 2) {
+                    const lastEntry = logData[logData.length - 1];
+                    const secondLastEntry = logData[logData.length - 2];
+                    
+                    if (lastEntry.event === 'Stop' && 
+                        secondLastEntry.event === 'Start' && 
+                        lastEntry.trial === secondLastEntry.trial) {
+                        logData.splice(-2, 2);
+                    }
+                }
+                
+                renderLog();
+                cancelDiscardButton.click();
+            }
+            
             // --- CORE FUNCTIONALITY ---
             function createTrialItem(name) {
                 const li = document.createElement('li');
@@ -286,14 +344,14 @@
                 li.addEventListener('click', handleTrialClick);
                 return li;
             }
-
+            
             function populateTrialList() {
                 trialList.innerHTML = '';
                 trialNames.forEach(name => trialList.appendChild(createTrialItem(name)));
                 if (trialList.firstChild) trialList.firstChild.click();
                 updateButtonStates();
             }
-
+            
             function renderLog() {
                 logBody.innerHTML = ''; 
                 emptyLogMessage.classList.toggle('hidden', logData.length > 0);
@@ -309,8 +367,10 @@
                     `;
                     logBody.appendChild(row);
                 });
+                
+                updateButtonStates();
             }
-
+            
             function updateButtonStates() {
                 startButton.disabled = isTiming;
                 stopButton.disabled = !isTiming;
@@ -318,14 +378,16 @@
                 trialList.classList.toggle('pointer-events-none', isTiming);
                 notesInput.disabled = isTiming;
                 editModeToggle.disabled = isTiming;
-                discardLastButton.disabled = logData.length === 0 || isTiming;
+                
+                // Discard button should be enabled only if there's a completed trial (with Stop event)
+                const hasCompletedTrial = logData.some(entry => entry.event === 'Stop');
+                discardLastButton.disabled = !hasCompletedTrial || isTiming;
             }
-
+            
             // --- INITIALIZATION ---
             setInterval(updateClock, 1000);
             updateClock();
             populateTrialList();
-
             sortableInstance = new Sortable(trialList, {
                 animation: 150,
                 ghostClass: 'sortable-ghost',
@@ -334,10 +396,11 @@
                     trialNames = Array.from(trialList.querySelectorAll('li')).map(li => li.textContent);
                 }
             });
-
+            
             // --- EVENT LISTENERS ---
             startButton.addEventListener('click', handleStart);
             stopButton.addEventListener('click', handleStop);
+            
             addTagButton.addEventListener('click', () => {
                 const val = customTagInput.value.trim();
                 if (val && !trialNames.includes(val)) {
@@ -348,6 +411,7 @@
                     customTagInput.value = '';
                 }
             });
+            
             removeTagButton.addEventListener('click', () => {
                 if (selectedTrialElement) {
                     trialNames = trialNames.filter(n => n !== selectedTrialElement.textContent);
@@ -355,24 +419,43 @@
                     if (trialList.firstChild) trialList.firstChild.click();
                 }
             });
+            
             editModeToggle.addEventListener('change', (e) => {
                 sortableInstance.option('disabled', !e.target.checked);
                 trialList.classList.toggle('bg-yellow-50', e.target.checked);
             });
+            
+            // Discard Last Trial handlers
+            discardLastButton.addEventListener('click', handleDiscardLast);
+            cancelDiscardButton.addEventListener('click', () => {
+                discardModal.classList.add('opacity-0');
+                discardModalContent.classList.add('scale-95');
+                setTimeout(() => discardModal.classList.add('hidden'), 200);
+            });
+            confirmDiscardButton.addEventListener('click', confirmDiscardTrial);
+            
+            // Reset Log handlers
             resetLogButton.addEventListener('click', () => {
                 confirmationModal.classList.remove('hidden');
-                setTimeout(() => { confirmationModal.classList.remove('opacity-0'); modalContent.classList.remove('scale-95'); }, 10);
+                setTimeout(() => { 
+                    confirmationModal.classList.remove('opacity-0'); 
+                    modalContent.classList.remove('scale-95'); 
+                }, 10);
             });
+            
             cancelResetButton.addEventListener('click', () => {
                 confirmationModal.classList.add('opacity-0');
+                modalContent.classList.add('scale-95');
                 setTimeout(() => confirmationModal.classList.add('hidden'), 200);
             });
+            
             confirmResetButton.addEventListener('click', () => {
                 logData = [];
                 renderLog();
                 handleStop();
                 cancelResetButton.click();
             });
+            
             exportButton.addEventListener('click', () => {
                 let csv = "Trial,Event,Notes,Timestamp\n" + logData.map(e => `${e.trial},${e.event},"${e.notes}","${e.timestamp}"`).join("\n");
                 const blob = new Blob([csv], { type: 'text/csv' });
