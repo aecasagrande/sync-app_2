@@ -281,6 +281,16 @@
     </div>
 
     <!-- MED BACKGROUND TIMER BANNER (hidden until started) -->
+    <!-- AUDIO TEST BAR -->
+    <div style="background:var(--blue-lt); border:1px solid var(--blue-bd); border-radius:var(--r); padding:.6rem 1rem; margin-bottom:.75rem; display:flex; align-items:center; gap:.75rem; flex-wrap:wrap;">
+        <span style="font-size:.7rem; font-weight:600; color:var(--blue); text-transform:uppercase; letter-spacing:.06em;">🔊 Audio Test</span>
+        <button onclick="playTone(440, 0.15, 0.15)" class="btn btn-ghost" style="font-size:.72rem; padding:.3rem .7rem;">Start click</button>
+        <button onclick="playTone(330, 0.15, 0.15)" class="btn btn-ghost" style="font-size:.72rem; padding:.3rem .7rem;">Stop click</button>
+        <button onclick="playChime()" class="btn btn-ghost" style="font-size:.72rem; padding:.3rem .7rem;">2-min chime</button>
+        <button onclick="playMedChime()" class="btn btn-ghost" style="font-size:.72rem; padding:.3rem .7rem;">Med chime</button>
+        <span style="font-size:.68rem; color:var(--text-muted);">Click any button above first to unlock audio, then test</span>
+    </div>
+
     <div id="medTimerBanner" class="hidden">
         <div class="med-timer-icon">💊</div>
         <div class="med-timer-info">
@@ -294,7 +304,7 @@
     <!-- SPECIALIST TIMERS: MRI + PUPILS -->
     <div class="spec-timers">
         <div class="spec-timer-card mri" id="mriTimerCard">
-            <div class="spec-timer-label"> MRI Session</div>
+            <div class="spec-timer-label">🧲 MRI Session</div>
             <div class="spec-timer-display" id="mriTimerDisplay">--:--:--</div>
             <div class="spec-timer-btns">
                 <button class="spec-btn-start mri" id="mriStartBtn">▶ Start</button>
@@ -302,7 +312,7 @@
             </div>
         </div>
         <div class="spec-timer-card" id="pupilTimerCard">
-            <div class="spec-timer-label"> Pupil Session</div>
+            <div class="spec-timer-label">👁 Pupil Session</div>
             <div class="spec-timer-display" id="pupilTimerDisplay">--:--:--</div>
             <div class="spec-timer-btns">
                 <button class="spec-btn-start" id="pupilStartBtn">▶ Start</button>
@@ -575,7 +585,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // === AUGMENTED REALITY ===
         steps.push({type:'header', label:`── Augmented Reality · ${medState.toUpperCase()}`});
         AR_TASKS.forEach(a => {
-            steps.push({type:'item', label:a.label, modality:'apdm+video', syncExpected:true});
+            steps.push({type:'item', label:a.label, modality:'apdm+video', dur:a.dur||0, syncExpected:true});
         });
 
         return steps;
