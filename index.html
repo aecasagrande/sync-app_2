@@ -630,6 +630,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 li.textContent = step.label;
             } else {
                 li.className = 'trial-item';
+
+                let badge = '';
+                if (step.isMedTimer) badge = '<span class="sync-badge" style="background:var(--amber-lt);color:var(--amber);border-color:var(--orange-bd);">💊 bg-timer</span>';
+
+                li.innerHTML = `<span>${step.label}</span>${badge}`;
+
                 li.dataset.idx   = idx;
                 li.dataset.label = step.label;
                 li.dataset.dur   = step.dur || 0;
@@ -638,11 +644,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 li.dataset.syncExpected = step.syncExpected ? '1' : '';
                 li.dataset.noSync       = step.noSync       ? '1' : '';
                 li.dataset.modality     = step.modality || '';
-
-                let badge = '';
-                if (step.isMedTimer) badge = '<span class="sync-badge" style="background:var(--amber-lt);color:var(--amber);border-color:var(--orange-bd);">💊 bg-timer</span>';
-
-                li.innerHTML = `<span>${step.label}</span>${badge}`;
                 li.addEventListener('click', handleClick);
             }
             trialList.appendChild(li);
