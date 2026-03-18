@@ -3,469 +3,1269 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Time Sync App</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>Sync_AntiFreeze</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        .log-container::-webkit-scrollbar, #trialList::-webkit-scrollbar { width: 8px; }
-        .log-container::-webkit-scrollbar-track, #trialList::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 10px; }
-        .log-container::-webkit-scrollbar-thumb, #trialList::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 10px; }
-        .trial-item.selected { background-color: #3b82f6; color: white; font-weight: 500; }
-        .sortable-ghost { background-color: #dbeafe; opacity: 0.7; }
-        .toggle-checkbox:checked { right: 0; border-color: #3b82f6; }
-        .toggle-checkbox:checked + .toggle-label { background-color: #3b82f6; }
-        
-        /* New Timer Style */
-        .timer-active { background-color: #fee2e2 !important; border-color: #ef4444 !important; }
-        .timer-text { font-family: 'Monaco', 'Consolas', monospace; }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg: #f0f4f8;
+            --white: #ffffff;
+            --border: #dde3ec;
+            --border-strong: #c4cdd9;
+            --text: #1c2b3a;
+            --text-mid: #445668;
+            --text-muted: #8898aa;
+            --blue: #1d6ce0;
+            --blue-lt: #eef4ff;
+            --blue-bd: #b8d0ff;
+            --green: #15803d;
+            --green-lt: #f0fdf4;
+            --green-bd: #86efac;
+            --red: #c8222a;
+            --red-lt: #fff2f2;
+            --red-bd: #fca5a5;
+            --orange: #c2500a;
+            --orange-lt: #fff8f0;
+            --orange-bd: #fdba74;
+            --purple: #6d28d9;
+            --purple-lt: #f6f3ff;
+            --purple-bd: #c4b5fd;
+            --teal: #0e7490;
+            --teal-lt: #ecfeff;
+            --teal-bd: #99f6e4;
+            --amber: #b45309;
+            --amber-lt: #fffbeb;
+            --r: 10px;
+            --r-sm: 6px;
+            --sh: 0 1px 3px rgba(0,0,0,.06), 0 4px 14px rgba(0,0,0,.05);
+            --sh-lg: 0 8px 32px rgba(0,0,0,.14);
+        }
+        body {
+            font-family: 'IBM Plex Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 1.5rem 1rem 3rem;
+        }
+        .mono { font-family: 'IBM Plex Mono', monospace; }
+        .container { max-width: 900px; margin: 0 auto; }
+        .hidden { display: none !important; }
+
+        /* HEADER */
+        .app-header {
+            display: flex; justify-content: space-between; align-items: flex-start;
+            margin-bottom: 1.25rem; flex-wrap: wrap; gap: .75rem;
+        }
+        .app-title { font-family: 'IBM Plex Mono', monospace; font-size: 1.5rem; font-weight: 600; color: var(--blue); letter-spacing: -.02em; }
+        .app-sub { font-size: .8rem; color: var(--text-muted); margin-top: 2px; }
+        .header-right { text-align: right; }
+        #realTimeClock { font-family: 'IBM Plex Mono'; font-size: 1.1rem; font-weight: 600; color: var(--text); }
+        .bids-pill { font-family: 'IBM Plex Mono'; font-size: .65rem; color: var(--blue); background: var(--blue-lt); border: 1px solid var(--blue-bd); border-radius: 20px; padding: 2px 10px; margin-top: 4px; display: inline-block; max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        /* CARDS */
+        .card {
+            background: var(--white); border: 1px solid var(--border);
+            border-radius: var(--r); box-shadow: var(--sh);
+            padding: 1.2rem 1.4rem; margin-bottom: 1rem;
+        }
+        .card-title { font-size: .62rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--text-muted); margin-bottom: .85rem; }
+        .field-lbl { font-size: .72rem; font-weight: 500; color: var(--text-muted); margin-bottom: .3rem; text-transform: uppercase; letter-spacing: .05em; }
+        .field-grp { display: flex; flex-direction: column; }
+
+        /* CONFIG GRID — site selector spans full width on top row */
+        .config-grid { display: flex; flex-direction: column; gap: .75rem; }
+        .config-row  { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: .65rem; align-items: end; }
+
+        /* SITE SELECTOR */
+        .site-selector { display: flex; gap: 6px; }
+        .site-btn {
+            display: flex; flex-direction: column; align-items: center; gap: 3px;
+            padding: 6px 0; border: 1px solid var(--border-strong); border-radius: var(--r-sm);
+            cursor: pointer; background: var(--white); transition: all .12s; font-size: .62rem;
+            color: var(--text-muted); font-family: 'IBM Plex Mono'; white-space: nowrap; flex: 1;
+        }
+        .site-btn:hover { border-color: var(--blue); color: var(--blue); }
+        .site-btn.active { background: var(--blue); color: white; border-color: var(--blue); }
+        .site-btn .flag { font-size: 1.35rem; line-height: 1; }
+
+        input[type=text], select, textarea {
+            font-family: 'IBM Plex Sans', sans-serif; font-size: .85rem;
+            color: var(--text); background: var(--white);
+            border: 1px solid var(--border-strong); border-radius: var(--r-sm);
+            padding: .42rem .7rem; outline: none; width: 100%;
+        }
+        input[type=text]:focus, select:focus, textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 2px var(--blue-lt); }
+
+        .bids-box { margin-top: 15px; }
+        #bidsFullPreview { background: var(--blue-lt); padding: 10px; border-radius: 5px; color: var(--blue); font-size: .82rem; word-break: break-all; }
+
+        /* ACTIVE SELECTION */
+        #activeSelectionDisplay {
+            border: 2px solid var(--border); border-radius: var(--r);
+            padding: .5rem 1rem; text-align: center; margin-bottom: .7rem; transition: all .3s;
+        }
+        #activeSelectionDisplay.timer-active { border-color: var(--red); background: var(--red-lt); animation: pulseBd 1.6s ease-in-out infinite; }
+        @keyframes pulseBd { 0%,100% { border-color: var(--red); } 50% { border-color: #fca5a5; } }
+        #selectionHeader { display: block; margin-bottom: 4px; }
+        #activeSelectionText { font-family: 'IBM Plex Mono'; font-weight: 600; font-size: .82rem; }
+        #countdownDisplay { font-family: 'IBM Plex Mono'; font-size: 1.2rem; color: var(--red); font-weight: 600; margin-top: 4px; }
+
+        /* TRIAL CONTROL TWO-COLUMN LAYOUT */
+        .trial-body { display: grid; grid-template-columns: 1fr 320px; gap: 1rem; margin-top: .75rem; align-items: start; }
+        .trial-controls { display: flex; flex-direction: column; }
+
+        /* TRIAL LIST */
+        #trialList { list-style: none; border: 1px solid var(--border); border-radius: var(--r-sm); max-height: 220px; overflow-y: auto; background: #fafbfd; }
+        .trial-item { padding: .28rem .9rem; cursor: pointer; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: .45rem; font-family: 'IBM Plex Mono'; font-size: .75rem; }
+        .trial-item:last-child { border-bottom: none; }
+        .trial-item.selected { background: var(--blue); color: #fff; }
+        .trial-item.section-header { background: #eef1f7; font-size: .56rem; color: var(--text-muted); font-weight: 600; letter-spacing: .08em; cursor: default; padding: .22rem .9rem; text-transform: uppercase; }
+        .trial-item.done { opacity: .45; text-decoration: line-through; }
+        .trial-item .sync-badge { font-size: .55rem; background: var(--teal-lt); color: var(--teal); border: 1px solid var(--teal-bd); border-radius: 3px; padding: 1px 4px; margin-left: auto; white-space: nowrap; }
+
+        /* BUTTONS */
+        .btn { font-family: 'IBM Plex Mono'; font-size: .78rem; padding: .48rem .95rem; border-radius: var(--r-sm); cursor: pointer; border: 1px solid transparent; transition: all .12s; white-space: nowrap; }
+        .btn:disabled { opacity: .4; cursor: not-allowed; }
+        .btn-blue   { background: var(--blue); color: #fff; }
+        .btn-start  { background: var(--green); color: #fff; width: 100%; font-size: .98rem; padding: .75rem; }
+        .btn-stop   { background: var(--red); color: #fff; width: 100%; font-size: .98rem; padding: .75rem; }
+        .btn-orange { background: var(--orange); color: #fff; }
+        .btn-red    { background: var(--red); color: #fff; }
+        .btn-teal   { background: var(--teal); color: #fff; }
+        .btn-amber  { background: var(--amber); color: #fff; }
+        .btn-purple { background: var(--purple); color: #fff; }
+        .btn-ghost  { background: transparent; border-color: var(--border-strong); color: var(--text-mid); }
+
+        /* LOG */
+        .log-scroll { max-height: 280px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--r-sm); }
+        table { width: 100%; border-collapse: collapse; }
+        thead th { position: sticky; top: 0; background: #f5f7fb; font-size: .59rem; text-transform: uppercase; color: var(--text-muted); padding: .52rem .8rem; text-align: left; border-bottom: 1px solid var(--border); }
+        tbody td { font-size: .72rem; padding: .44rem .8rem; border-bottom: 1px solid var(--border); font-family: 'IBM Plex Mono'; }
+        tbody tr:last-child td { border-bottom: none; }
+        tbody tr:hover td { background: #fafbfd; }
+
+        /* MODALS */
+        .modal-ov { position: fixed; inset: 0; background: rgba(10,18,30,.5); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 200; }
+        .modal-ov.hidden { display: none; }
+        .modal-box { background: var(--white); padding: 1.7rem; border-radius: var(--r); width: 100%; max-width: 460px; box-shadow: var(--sh-lg); }
+        .modal-title { font-size: .7rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 1rem; }
+
+        /* MED TIMER BANNER */
+        #medTimerBanner {
+            background: var(--amber-lt); border: 1.5px solid var(--orange-bd);
+            border-radius: var(--r); padding: .85rem 1.2rem;
+            display: flex; align-items: center; gap: 1rem;
+            margin-bottom: 1rem; animation: pulseAmber 2s ease-in-out infinite;
+        }
+        #medTimerBanner.hidden { display: none; }
+        @keyframes pulseAmber { 0%,100% { border-color: var(--orange-bd); } 50% { border-color: var(--amber); } }
+        .med-timer-icon { font-size: 1.5rem; }
+        .med-timer-info { flex: 1; }
+        .med-timer-label { font-size: .68rem; font-weight: 600; color: var(--amber); text-transform: uppercase; letter-spacing: .06em; }
+        #medTimerDisplay { font-family: 'IBM Plex Mono'; font-size: 1.4rem; font-weight: 600; color: var(--text); }
+        .med-timer-sub { font-size: .65rem; color: var(--text-muted); }
+        #stopMedTimerBtn { background: var(--amber); color: white; border: none; border-radius: var(--r-sm); padding: .5rem .9rem; cursor: pointer; font-family: 'IBM Plex Mono'; font-size: .75rem; white-space: nowrap; }
+
+        /* SPECIALIST TIMERS */
+        .spec-timers { display: flex; gap: .75rem; margin-bottom: 1rem; }
+        .spec-timer-card {
+            flex: 1; border: 1.5px solid var(--border); border-radius: var(--r);
+            padding: .75rem 1rem; display: flex; flex-direction: column; gap: .35rem;
+        }
+        .spec-timer-card.running { border-color: var(--purple-bd); background: var(--purple-lt); }
+        .spec-timer-card.running.mri { border-color: var(--blue-bd); background: var(--blue-lt); }
+        .spec-timer-label { font-size: .6rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text-muted); }
+        .spec-timer-display { font-family: 'IBM Plex Mono'; font-size: 1.1rem; font-weight: 600; color: var(--text); }
+        .spec-timer-btns { display: flex; gap: 5px; margin-top: 2px; }
+        .spec-timer-btns button { font-size: .68rem; padding: .3rem .6rem; border-radius: 4px; cursor: pointer; border: 1px solid transparent; font-family: 'IBM Plex Mono'; }
+        .spec-btn-start { background: var(--purple); color: white; }
+        .spec-btn-start.mri { background: var(--blue); }
+        .spec-btn-stop { background: var(--red); color: white; }
+        .spec-btn-stop:disabled { opacity: .4; cursor: not-allowed; }
+        .spec-btn-start:disabled { opacity: .4; cursor: not-allowed; }
+
+        /* QC PANEL */
+        #qcPanel .qc-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: .5rem; margin-top: .5rem; }
+        .qc-item { display: flex; align-items: center; gap: .5rem; font-size: .75rem; padding: .4rem .6rem; border-radius: var(--r-sm); border: 1px solid var(--border); background: #fafbfd; font-family: 'IBM Plex Mono'; }
+        .qc-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+        .qc-dot.ok { background: var(--green); }
+        .qc-dot.miss { background: var(--red); }
+        .qc-dot.partial { background: var(--orange); }
+        .qc-label { flex: 1; }
+        .qc-count { font-size: .65rem; color: var(--text-muted); }
+
+        /* UPDRS calc display */
+        #updrsResult { font-family: 'IBM Plex Mono'; font-size: 1.3rem; font-weight: 700; color: var(--blue); text-align: center; padding: .75rem; background: var(--blue-lt); border-radius: var(--r-sm); margin-top: .75rem; }
     </style>
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
-    <div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-3xl">
-        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">Time Sync App</h1>
-        <p id="realTimeClock" class="text-xl font-medium text-center text-gray-600 mb-6 font-mono"></p>
-        <div class="mb-6">
-            <div class="flex justify-between items-end mb-2">
-                <label class="block text-sm font-medium text-gray-700">1. Select Trial</label>
-                <div class="flex items-center">
-                    <span class="mr-2 text-xs font-medium text-gray-500 uppercase tracking-wider">Lock</span>
-                    <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
-                        <input type="checkbox" name="toggle" id="editModeToggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer border-gray-300"/>
-                        <label for="editModeToggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
-                    </div>
-                    <span class="text-xs font-medium text-gray-500 uppercase tracking-wider">Edit</span>
+<body>
+<div class="container">
+
+    <!-- HEADER -->
+    <div class="app-header">
+        <div>
+            <div class="app-title">Sync_AntiFreeze</div>
+            <div class="app-sub">Clinical Session Synchronisation · University of Waterloo</div>
+        </div>
+        <div class="header-right">
+            <div id="realTimeClock">--:--:--</div>
+            <div id="bidsHeaderPill" class="bids-pill">AT-sub-???_ses-???_...</div>
+        </div>
+    </div>
+
+    <!-- SESSION CONFIG CARD -->
+    <div class="card">
+        <div class="card-title">Session Configuration</div>
+        <div class="config-grid">
+
+            <!-- ROW 1: SITE SELECTOR (full width) -->
+            <div class="field-grp">
+                <div class="field-lbl">Site</div>
+                <div class="site-selector" id="siteBtns">
+                    <button class="site-btn active" data-site="can" title="Canada">
+                        <span class="flag">🇨🇦</span><span>CAN</span>
+                    </button>
+                    <button class="site-btn" data-site="aus" title="Australia">
+                        <span class="flag">🇦🇺</span><span>AUS</span>
+                    </button>
+                    <button class="site-btn" data-site="nld" title="Netherlands">
+                        <span class="flag">🇳🇱</span><span>NLD</span>
+                    </button>
+                    <button class="site-btn" data-site="usa" title="United States">
+                        <span class="flag">🇺🇸</span><span>USA</span>
+                    </button>
                 </div>
             </div>
-            <div id="activeSelectionDisplay" class="w-full p-4 mb-2 bg-blue-50 border-2 border-blue-200 rounded-lg text-center shadow-sm transition-all duration-300">
-                <span id="selectionHeader" class="text-gray-500 text-xs uppercase font-bold block mb-1">Currently Selected</span>
-                <span id="activeSelectionText" class="text-lg font-bold text-blue-800">None</span>
-                <div id="countdownDisplay" class="hidden text-3xl font-black text-red-600 timer-text mt-1">00:00</div>
+
+            <!-- ROW 2: PARTICIPANT + VISIT + MED STATE -->
+            <div class="config-row">
+                <div class="field-grp">
+                    <div class="field-lbl">Participant #</div>
+                    <input type="text" id="subjectInput" placeholder="e.g. 01" maxlength="4" style="text-align:center; font-size:1rem; font-weight:600; font-family:'IBM Plex Mono';">
+                </div>
+                <div class="field-grp">
+                    <div class="field-lbl">Visit / Session</div>
+                    <select id="visitSelect">
+                        <option value="t1on">Visit 1 – ON (ses-t1on)</option>
+                        <option value="t2off">Visit 2 OFF (ses-t2off)</option>
+                        <option value="t2on">Visit 2 ON (ses-t2on)</option>
+                        <option value="t3off">Visit 3 OFF (ses-t3off)</option>
+                        <option value="t3on">Visit 3 ON (ses-t3on)</option>
+                    </select>
+                </div>
+                <div class="field-grp">
+                    <div class="field-lbl">Med State</div>
+                    <select id="stateSelect">
+                        <option value="on">ON Medication</option>
+                        <option value="off">OFF Medication</option>
+                    </select>
+                </div>
+                <!-- GROUP (FR always; NF commented out for potential future use)
+                <div class="field-grp">
+                    <div class="field-lbl">Group</div>
+                    <select id="groupSelect">
+                        <option value="FR">FR – Freezer</option>
+                        <!-- <option value="NF">NF – Non-Freezer</option> -->
+                    </select>
+                </div>
+                -->
             </div>
-            <ul id="trialList" class="w-full max-h-48 overflow-y-auto border border-gray-300 rounded-lg bg-white shadow-sm"></ul>
-            
-            <div class="mt-4">
-                <label for="notesInput" class="block text-sm font-medium text-gray-700 mb-2">2. Add Notes (Optional)</label>
-                <textarea id="notesInput" rows="2" placeholder="Enter notes..." class="block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"></textarea>
-            </div>
-            
-            <div class="flex flex-col sm:flex-row gap-3 mt-4">
-                <input type="text" id="customTagInput" placeholder="Type new tag (e.g. Test_5min)..." class="flex-grow block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-            </div>
-            <div class="flex gap-3 mt-3">
-                <button id="addTagButton" class="w-full px-5 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition duration-200 disabled:opacity-50">Add Tag</button>
-                <button id="removeTagButton" class="w-full px-5 py-2 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700 transition duration-200 disabled:opacity-50">Remove Selected</button>
+
+        </div>
+        <div class="bids-box">
+            <div class="field-lbl">Active BIDS Prefix</div>
+            <div id="bidsFullPreview" class="mono">...</div>
+        </div>
+    </div>
+
+    <!-- MED BACKGROUND TIMER BANNER (hidden until started) -->
+    <div id="medTimerBanner" class="hidden">
+        <div class="med-timer-icon">💊</div>
+        <div class="med-timer-info">
+            <div class="med-timer-label">Medication Intake Period – Running in Background</div>
+            <div id="medTimerDisplay">00:00:00</div>
+            <div class="med-timer-sub" id="medTimerStart">Started: —</div>
+        </div>
+        <button id="stopMedTimerBtn">■ End Med Period</button>
+    </div>
+
+    <!-- SPECIALIST TIMERS: MRI + PUPILS -->
+    <div class="spec-timers">
+        <div class="spec-timer-card mri" id="mriTimerCard">
+            <div class="spec-timer-label"> MRI Session</div>
+            <div class="spec-timer-display" id="mriTimerDisplay">--:--:--</div>
+            <div class="spec-timer-btns">
+                <button class="spec-btn-start mri" id="mriStartBtn">▶ Start</button>
+                <button class="spec-btn-stop" id="mriStopBtn" disabled>■ Stop</button>
             </div>
         </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-            <button id="startButton" class="w-full py-4 px-6 bg-green-500 text-white font-bold text-lg rounded-lg shadow-lg hover:bg-green-600 transition duration-200 disabled:opacity-50">START</button>
-            <button id="stopButton" class="w-full py-4 px-6 bg-red-500 text-white font-bold text-lg rounded-lg shadow-lg hover:bg-red-600 transition duration-200 disabled:opacity-50">STOP</button>
-        </div>
-        <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
-            <h2 class="text-2xl font-semibold text-gray-700">Event Log</h2>
-            <div class="flex gap-2 flex-wrap">
-                <button id="discardLastButton" class="px-4 py-2 bg-yellow-500 text-white text-sm font-medium rounded-lg shadow-md hover:bg-yellow-600 disabled:opacity-50">Discard Last Trial</button>
-                <button id="resetLogButton" class="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg shadow-md hover:bg-red-700 disabled:opacity-50">Reset Log</button>
-                <button id="exportButton" class="px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-lg shadow-md hover:bg-gray-700 disabled:opacity-50">Export CSV</button>
+        <div class="spec-timer-card" id="pupilTimerCard">
+            <div class="spec-timer-label"> Pupil Session</div>
+            <div class="spec-timer-display" id="pupilTimerDisplay">--:--:--</div>
+            <div class="spec-timer-btns">
+                <button class="spec-btn-start" id="pupilStartBtn">▶ Start</button>
+                <button class="spec-btn-stop" id="pupilStopBtn" disabled>■ Stop</button>
             </div>
         </div>
-        <div class="log-container w-full max-h-80 overflow-y-auto border border-gray-200 rounded-lg bg-gray-50 p-1">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-100 sticky top-0">
+    </div>
+
+    <!-- TRIAL CONTROL CARD -->
+    <div class="card" style="overflow:hidden;">
+        <!-- CURRENTLY SELECTED — full width on top -->
+        <div id="activeSelectionDisplay">
+            <span id="selectionHeader" class="field-lbl">Currently Selected</span>
+            <div id="activeSelectionText" class="mono" style="font-weight:600;">—</div>
+            <div id="countdownDisplay" class="hidden"></div>
+        </div>
+        <!-- TWO-COLUMN BODY -->
+        <div class="trial-body">
+            <!-- LEFT: trial list -->
+            <ul id="trialList"></ul>
+            <!-- RIGHT: controls -->
+            <div class="trial-controls">
+                <div>
+                    <div class="field-lbl">Custom Step</div>
+                    <div style="display:flex; gap:6px; margin-top:4px;">
+                        <input type="text" id="customTagInput" placeholder="Step name..." style="flex:1; min-width:0;">
+                        <button id="addTagButton" class="btn btn-blue">+ Add</button>
+                        <button id="removeTagButton" class="btn btn-ghost">✕</button>
+                    </div>
+                </div>
+                <div style="margin-top:12px;">
+                    <div class="field-lbl">Notes (optional)</div>
+                    <textarea id="notesInput" rows="7" placeholder="Notes for this session..." style="margin-top:4px; resize:vertical; width:100%;"></textarea>
+                </div>
+            </div>
+        </div>
+        <!-- FULL-WIDTH START/STOP -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px;">
+            <button id="startButton" class="btn btn-start" style="font-size:1.5rem; font-weight:700; padding:1.4rem;">▶ START</button>
+            <button id="stopButton"  class="btn btn-stop"  style="font-size:1.5rem; font-weight:700; padding:1.4rem;">■ STOP</button>
+        </div>
+    </div>
+
+    <!-- EVENT LOG -->
+    <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
+            <div class="card-title" style="margin-bottom:0;">Event Log</div>
+            <div style="display:flex; gap:5px; flex-wrap:wrap;">
+                <button id="discardLastButton" class="btn btn-orange">Discard Last</button>
+                <button id="resetLogButton" class="btn btn-red">Reset Log</button>
+                <button id="exportButton" class="btn btn-teal">Export CSV</button>
+            </div>
+        </div>
+        <div class="log-scroll">
+            <table>
+                <thead>
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trial</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Event</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Notes</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Timestamp</th>
+                        <th>BIDS Filename</th>
+                        <th>Modality</th>
+                        <th>Session</th>
+                        <th>Event</th>
+                        <th>Notes</th>
+                        <th>Timestamp</th>
+                        <th>Duration</th>
                     </tr>
                 </thead>
-                <tbody id="logBody" class="bg-white divide-y divide-gray-200"></tbody>
+                <tbody id="logBody"></tbody>
             </table>
         </div>
-        <p id="emptyLogMessage" class="text-center text-gray-500 pt-4">Log is empty.</p>
+        <p id="emptyLogMessage" style="text-align:center; padding:20px; color:#aaa; font-size:.8rem;">// log is empty</p>
     </div>
-    
-    <!-- Discard Last Trial Confirmation Modal -->
-    <div id="discardModal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50 hidden opacity-0 transition-opacity duration-200">
-        <div id="discardModalContent" class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 transform scale-95 transition-transform duration-200">
-            <h3 class="text-xl font-bold text-gray-800 mb-4">Discard Last Trial?</h3>
-            <p class="text-gray-600 mb-2">This will remove the most recent trial's Start and Stop entries:</p>
-            <p id="discardTrialName" class="text-lg font-semibold text-blue-600 mb-6"></p>
-            <div class="flex justify-end gap-3">
-                <button id="cancelDiscardButton" class="px-5 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300">Cancel</button>
-                <button id="confirmDiscardButton" class="px-5 py-2 bg-yellow-600 text-white font-semibold rounded-lg shadow-md hover:bg-yellow-700">Discard</button>
-            </div>
+
+    <!-- QC FILE CHECK -->
+    <div class="card" id="qcPanel">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: .5rem;">
+            <div class="card-title" style="margin-bottom:0;">File Collection QC — Sync Task Count</div>
+            <button id="refreshQcBtn" class="btn btn-ghost" style="font-size:.7rem; padding:.3rem .7rem;">↻ Refresh</button>
+        </div>
+        <div style="font-size:.72rem; color:var(--text-muted); margin-bottom:.75rem;">Counts completed sync tasks per block. Use this to cross-check against APDM and other acquisition programs.</div>
+        <div class="qc-grid" id="qcGrid"></div>
+    </div>
+
+</div><!-- /container -->
+
+<!-- DISCARD MODAL -->
+<div id="discardModal" class="modal-ov hidden">
+    <div class="modal-box">
+        <div class="modal-title">Discard Last Entry?</div>
+        <div id="discardTrialName" style="margin:10px 0; font-weight:bold; font-family:'IBM Plex Mono'; font-size:.85rem;"></div>
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:1rem;">
+            <button id="cancelDiscardButton" class="btn btn-ghost">Cancel</button>
+            <button id="confirmDiscardButton" class="btn btn-orange">Discard</button>
         </div>
     </div>
-    
-    <!-- Reset Log Confirmation Modal -->
-    <div id="confirmationModal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50 hidden opacity-0 transition-opacity duration-200">
-        <div id="modalContent" class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 transform scale-95 transition-transform duration-200">
-            <h3 class="text-xl font-bold text-gray-800 mb-4">Are you sure?</h3>
-            <p class="text-gray-600 mb-6">This will permanently delete all log entries.</p>
-            <div class="flex justify-end gap-3">
-                <button id="cancelResetButton" class="px-5 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300">Cancel</button>
-                <button id="confirmResetButton" class="px-5 py-2 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700">Confirm</button>
-            </div>
+</div>
+
+<!-- RESET MODAL -->
+<div id="confirmationModal" class="modal-ov hidden">
+    <div class="modal-box">
+        <div class="modal-title">Reset Entire Log?</div>
+        <p style="margin:10px 0; font-size:.85rem;">This cannot be undone.</p>
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:1rem;">
+            <button id="cancelResetButton" class="btn btn-ghost">Cancel</button>
+            <button id="confirmResetButton" class="btn btn-red">Confirm Reset</button>
         </div>
     </div>
-    
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // --- STATE ---
-            let logData = [];
-            let isTiming = false;
-            let currentTrialName = '';
-            let selectedTrialElement = null; 
-            let sortableInstance = null;
-            let timerInterval = null;
-            let remainingSeconds = 0;
-            let trialNames = [
-                'OFF_5min_Sitting', 'OFF_5min_Standing', 'OFF_5min_Walking', 'OFF_Giladi_Walk',
-                'OFF_Giladi_DTWalk', 'OFF_Giladi_Carrying', 'OFF_Giladi_Turns', 'OFF_Giladi_DTTurns',
-                'OFF_Giladi_Shuffle', 'OFF_Giladi_Agility', 'OFF_Giladi_Doorway', 'OFF_2min_VR_Sitting',
-                'OFF_2min_VR_Standing', 'OFF_2min_VR_Walking', 'OFF_30s_T1', 'OFF_Trial1', 'OFF_30s_T2',
-                'OFF_Trial2', 'OFF_30s_T3', 'OFF_Trial3', 'OFF_30s_T4', 'OFF_Trial4', 'OFF_30s_T5',
-                'OFF_Trial5', 'OFF_30s_T6', 'OFF_Trial6', 'OFF_30s_T7', 'OFF_Trial7', 'OFF_30s_T8',
-                'OFF_Trial8', 'OFF_30s_T9', 'OFF_Trial9', 'OFF_30s_T10', 'OFF_Trial10',
-                'ON_5min_Sitting', 'ON_5min_Standing', 'ON_5min_Walking', 'ON_Giladi_Walk',
-                'ON_Giladi_DTWalk', 'ON_Giladi_Carrying', 'ON_Giladi_Turns', 'ON_Giladi_DTTurns',
-                'ON_Giladi_Shuffle', 'ON_Giladi_Agility', 'ON_Giladi_Doorway', 'ON_2min_VR_Sitting',
-                'ON_2min_VR_Standing', 'ON_2min_VR_Walking', 'ON_30s_T1', 'ON_Trial1', 'ON_30s_T2',
-                'ON_Trial2', 'ON_30s_T3', 'ON_Trial3', 'ON_30s_T4', 'ON_Trial4', 'ON_30s_T5',
-                'ON_Trial5', 'ON_30s_T6', 'ON_Trial6', 'ON_30s_T7', 'ON_Trial7', 'ON_30s_T8',
-                'ON_Trial8', 'ON_30s_T9', 'ON_Trial9', 'ON_30s_T10', 'ON_Trial10', 'Deep_Breath'
-            ];
-            
-            // --- DOM ELEMENTS ---
-            const startButton = document.getElementById('startButton');
-            const stopButton = document.getElementById('stopButton');
-            const exportButton = document.getElementById('exportButton');
-            const trialList = document.getElementById('trialList');
-            const notesInput = document.getElementById('notesInput');
-            const customTagInput = document.getElementById('customTagInput');
-            const addTagButton = document.getElementById('addTagButton');
-            const removeTagButton = document.getElementById('removeTagButton');
-            const discardLastButton = document.getElementById('discardLastButton');
-            const resetLogButton = document.getElementById('resetLogButton');
-            const logBody = document.getElementById('logBody');
-            const emptyLogMessage = document.getElementById('emptyLogMessage');
-            const clockElement = document.getElementById('realTimeClock');
-            const activeSelectionText = document.getElementById('activeSelectionText');
-            const countdownDisplay = document.getElementById('countdownDisplay');
-            const activeSelectionDisplay = document.getElementById('activeSelectionDisplay');
-            const selectionHeader = document.getElementById('selectionHeader');
-            const editModeToggle = document.getElementById('editModeToggle');
-            const confirmationModal = document.getElementById('confirmationModal');
-            const modalContent = document.getElementById('modalContent');
-            const cancelResetButton = document.getElementById('cancelResetButton');
-            const confirmResetButton = document.getElementById('confirmResetButton');
-            
-            // Discard modal elements
-            const discardModal = document.getElementById('discardModal');
-            const discardModalContent = document.getElementById('discardModalContent');
-            const discardTrialName = document.getElementById('discardTrialName');
-            const cancelDiscardButton = document.getElementById('cancelDiscardButton');
-            const confirmDiscardButton = document.getElementById('confirmDiscardButton');
-            
-            // --- AUDIO BEEP FUNCTION ---
-            function playBeep() {
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                const oscillator = audioCtx.createOscillator();
-                const gainNode = audioCtx.createGain();
-                oscillator.connect(gainNode);
-                gainNode.connect(audioCtx.destination);
-                oscillator.type = 'sine';
-                oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
-                gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
-                
-                oscillator.start();
-                gainNode.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 1);
-                oscillator.stop(audioCtx.currentTime + 1);
+</div>
+
+<!-- UPDRS AUTO-CALC MODAL -->
+<div id="updrsModal" class="modal-ov hidden">
+    <div class="modal-box">
+        <div class="modal-title">⚠️ UPDRS Starting – Calculate Time Since Dose</div>
+        <p style="font-size:.82rem; color:var(--text-mid); margin-bottom:.75rem;">Medication intake was logged. UPDRS is now starting.</p>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:.75rem; margin-bottom:.75rem;">
+            <div>
+                <div class="field-lbl">Medication Ingestion Time</div>
+                <div id="updrsIntakeTime" class="mono" style="padding:.5rem; background:var(--orange-lt); border-radius:5px; font-size:.85rem; border:1px solid var(--orange-bd);"></div>
+            </div>
+            <div>
+                <div class="field-lbl">UPDRS Start Time</div>
+                <div id="updrsStartTime" class="mono" style="padding:.5rem; background:var(--blue-lt); border-radius:5px; font-size:.85rem; border:1px solid var(--blue-bd);"></div>
+            </div>
+        </div>
+        <div id="updrsResult">— min since last dose</div>
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:1rem;">
+            <button id="confirmUpdrsButton" class="btn btn-blue">Log & Proceed</button>
+        </div>
+    </div>
+</div>
+
+<!-- DUPLICATE WARNING MODAL -->
+<div id="duplicateModal" class="modal-ov hidden">
+    <div class="modal-box">
+        <div class="modal-title">⚠️ Task Already Completed</div>
+        <p style="font-size:.85rem; margin:.5rem 0 .25rem;">This task already has a completed entry in the log:</p>
+        <div id="duplicateTaskName" style="font-family:'IBM Plex Mono'; font-size:.82rem; background:var(--red-lt); border:1px solid var(--red-bd); border-radius:5px; padding:.5rem .75rem; margin:.5rem 0;"></div>
+        <p style="font-size:.82rem; color:var(--text-muted);">Are you sure you want to record it again?</p>
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:1rem;">
+            <button id="cancelDuplicateBtn" class="btn btn-ghost">Cancel</button>
+            <button id="confirmDuplicateBtn" class="btn btn-red">Record Anyway</button>
+        </div>
+    </div>
+</div>
+
+<!-- SKIP WARNING MODAL -->
+<div id="skipModal" class="modal-ov hidden">
+    <div class="modal-box">
+        <div class="modal-title">⚠️ Out-of-Order Task</div>
+        <p style="font-size:.85rem; margin:.5rem 0 .25rem;">You're about to start:</p>
+        <div id="skipTaskName" style="font-family:'IBM Plex Mono'; font-size:.82rem; background:var(--orange-lt); border:1px solid var(--orange-bd); border-radius:5px; padding:.5rem .75rem; margin:.5rem 0;"></div>
+        <p style="font-size:.85rem; margin:.25rem 0 .25rem;">But the next expected task is:</p>
+        <div id="skipExpectedName" style="font-family:'IBM Plex Mono'; font-size:.82rem; background:var(--blue-lt); border:1px solid var(--blue-bd); border-radius:5px; padding:.5rem .75rem; margin:.5rem 0;"></div>
+        <p style="font-size:.82rem; color:var(--text-muted);">Continue anyway?</p>
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:1rem;">
+            <button id="cancelSkipBtn" class="btn btn-ghost">Cancel</button>
+            <button id="confirmSkipBtn" class="btn btn-orange">Continue Anyway</button>
+        </div>
+    </div>
+</div>
+
+<!-- EXPORT CHECKLIST MODAL -->
+<div id="checklistModal" class="modal-ov hidden">
+    <div class="modal-box" style="max-width:520px;">
+        <div class="modal-title">📋 Session Completion Checklist</div>
+        <p style="font-size:.82rem; color:var(--text-muted); margin-bottom:.85rem;">Review before exporting. Any incomplete blocks are flagged below.</p>
+        <div id="checklistBody" style="display:flex; flex-direction:column; gap:.4rem; margin-bottom:1rem;"></div>
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:1rem;">
+            <button id="cancelChecklistBtn" class="btn btn-ghost">Go Back</button>
+            <button id="confirmChecklistBtn" class="btn btn-teal">Export CSV Anyway</button>
+        </div>
+    </div>
+</div>
+
+<!-- EDIT NOTE MODAL -->
+<div id="editNoteModal" class="modal-ov hidden">
+    <div class="modal-box">
+        <div class="modal-title">✏️ Edit Note for Entry</div>
+        <div id="editNoteTask" style="font-family:'IBM Plex Mono'; font-size:.8rem; color:var(--text-muted); margin-bottom:.75rem;"></div>
+        <div class="field-lbl">Note</div>
+        <textarea id="editNoteInput" rows="3" style="margin-top:4px;" placeholder="Add or edit note..."></textarea>
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:1rem;">
+            <button id="cancelEditNoteBtn" class="btn btn-ghost">Cancel</button>
+            <button id="confirmEditNoteBtn" class="btn btn-blue">Save Note</button>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    /* =====================================================================
+       STATE
+    ====================================================================== */
+    let logData         = [];
+    let isTiming        = false;
+    let currentTrialName = '';
+    let currentMedState = 'on';
+    let currentVisit    = 't1on';
+    let currentSite     = 'can';
+    let currentSubject  = '';
+    let selectedEl      = null;
+    let timerInt        = null;
+    let remaining       = 0;
+    let startTimestamp  = null;   // wall-clock when START pressed
+
+    // Background med timer
+    let medTimerRunning   = false;
+    let medTimerStart     = null; // Date object
+    let medTimerInterval  = null;
+    let medIngestionTime  = null; // stored for UPDRS calc
+
+    // Specialist timers
+    let mriRunning = false, mriStart = null, mriInterval = null, mriSeconds = 0;
+    let pupilRunning = false, pupilStart = null, pupilInterval = null, pupilSeconds = 0;
+
+    /* =====================================================================
+       PROTOCOL DEFINITION
+    ====================================================================== */
+    // ECG/GSR single block tasks (no individual sync file)
+    // Vitals: NO sync needed
+    // Giladi: ECG/GSR = single file "giladiprotocol", APDM = per-task, Video = per-task, Sync = yes
+    // ContWalk: ECG/GSR = "STDT", APDM = per-task, Video = per-task, Sync = yes
+    // AR: ECG/GSR = "AR", APDM = per-task, Video = per-task, Sync = yes
+    // Cognitive: pupils only (tracked separately), ECG/GSR = "cogtask"
+
+    const GILADI_TASKS = [
+        {label:'stwalk'}, {label:'dtwalk'}, {label:'stcarr'},
+        {label:'stturn'}, {label:'dtturn'}, {label:'stshuf'},
+        {label:'stagil'}, {label:'stdoor'}
+    ];
+    const CONT_WALK_TASKS = [
+        {label:'st2mwalk', dur:120}, {label:'dt2mwalk', dur:120}
+    ];
+    const AR_TASKS = [
+        {label:'arltfpwalk'}, {label:'arlt2mwalk', dur:120}, {label:'arhtfpwalk'},
+        {label:'arht2mwalk', dur:120}, {label:'arltturn'}, {label:'arhtturn'}
+    ];
+
+    // Protocol builder — state-aware
+    function buildProtocol(visit, medState) {
+        const steps = [];
+
+        // Vitals removed — not needed in sync app
+
+        // === MEDICATION INTAKE (only at start of ON sessions for Visit 2/3) ===
+        if (['t2on','t3on'].includes(visit)) {
+            steps.push({type:'header', label:'── Medication Intake & UPDRS'});
+            steps.push({type:'item', label:'med-intake', isMedTimer:true, noSync:true});
+            steps.push({type:'item', label:'updrs', modality:'clinical', noSync:true});
+        }
+
+        // === UPDRS (at start of t1on, t2off, t3off) ===
+        if (['t1on','t2off','t3off'].includes(visit)) {
+            steps.push({type:'header', label:'── UPDRS'});
+            steps.push({type:'item', label:'updrs', modality:'clinical', noSync:true});
+        }
+
+        // === GILADI PROTOCOL ===
+        steps.push({type:'header', label:`── Giladi Protocol · ${medState.toUpperCase()}`});
+        GILADI_TASKS.forEach(g => {
+            steps.push({type:'item', label:g.label, modality:'apdm+video', syncExpected:true});
+        });
+
+        // === CONTINUOUS WALK ===
+        steps.push({type:'header', label:`── Continuous Walk · ${medState.toUpperCase()}`});
+        CONT_WALK_TASKS.forEach(c => {
+            steps.push({type:'item', label:c.label, modality:'apdm+video', dur:c.dur||0, syncExpected:true});
+        });
+
+        // === AUGMENTED REALITY ===
+        steps.push({type:'header', label:`── Augmented Reality · ${medState.toUpperCase()}`});
+        AR_TASKS.forEach(a => {
+            steps.push({type:'item', label:a.label, modality:'apdm+video', syncExpected:true});
+        });
+
+        return steps;
+    }
+
+    let protocol = buildProtocol('t1on', 'on');
+
+    /* =====================================================================
+       BIDS NAMING
+    ====================================================================== */
+    const padSub = s => (s || '').replace(/\D/g,'').padStart(2,'0').substring(0,4) || '??';
+
+    function getBidsPrefix() {
+        return `AT-sub-${currentSite}${padSub(currentSubject)}_ses-${currentVisit}`;
+    }
+
+    // Full BIDS filename for a step
+    function stepBidsName(step) {
+        const prefix = getBidsPrefix();
+        const task = step.label;
+        return `${prefix}_task-${task}`;
+    }
+
+    function updateBidsUI() {
+        const prefix = getBidsPrefix();
+        document.getElementById('bidsFullPreview').textContent = prefix + '_task-...';
+        document.getElementById('bidsHeaderPill').textContent  = prefix + '_...';
+    }
+
+    /* =====================================================================
+       TRIAL LIST RENDERING
+    ====================================================================== */
+    const $ = id => document.getElementById(id);
+    const trialList = $('trialList');
+
+    function populateTrialList() {
+        trialList.innerHTML = '';
+        protocol.forEach((step, idx) => {
+            const li = document.createElement('li');
+            if (step.type === 'header') {
+                li.className = 'trial-item section-header';
+                li.textContent = step.label;
+            } else {
+                li.className = 'trial-item';
+                li.dataset.idx   = idx;
+                li.dataset.label = step.label;
+                li.dataset.dur   = step.dur || 0;
+                li.dataset.isMedTimer   = step.isMedTimer   ? '1' : '';
+                li.dataset.isBlockEcg   = step.isBlockEcg   ? '1' : '';
+                li.dataset.syncExpected = step.syncExpected ? '1' : '';
+                li.dataset.noSync       = step.noSync       ? '1' : '';
+                li.dataset.modality     = step.modality || '';
+
+                let badge = '';
+                if (step.isMedTimer) badge = '<span class="sync-badge" style="background:var(--amber-lt);color:var(--amber);border-color:var(--orange-bd);">💊 bg-timer</span>';
+
+                li.innerHTML = `<span>${step.label}</span>${badge}`;
+                li.addEventListener('click', handleClick);
             }
-            
-            // --- HELPER FUNCTIONS ---
-            function getTrialDuration(name) {
-                if (name.includes('5min')) return 300;
-                if (name.includes('2min')) return 120;
-                if (name.includes('30s')) return 30;
-                return 0;
-            }
-            
-            function formatTime(seconds) {
-                const mins = Math.floor(seconds / 60);
-                const secs = seconds % 60;
-                return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-            }
-            
-            function updateClock() {
-                const parts = new Date().toString().split(' ');
-                clockElement.textContent = parts[4] + ' ' + parts.slice(5).join(' ');
-            }
-            
-            function handleTrialClick(e) {
-                if (isTiming) return;
-                const clickedItem = e.currentTarget;
-                if (selectedTrialElement) selectedTrialElement.classList.remove('selected');
-                clickedItem.classList.add('selected');
-                selectedTrialElement = clickedItem;
-                activeSelectionText.textContent = clickedItem.textContent;
-                updateButtonStates();
-            }
-            
-            function handleStart() {
-                if (!selectedTrialElement) return;
-                isTiming = true;
-                currentTrialName = selectedTrialElement.textContent;
-                
-                logData.push({ 
-                    trial: currentTrialName, 
-                    event: 'Start', 
-                    notes: notesInput.value.trim(), 
-                    timestamp: new Date().toString() 
-                });
-                notesInput.value = '';
-                renderLog();
-                
-                remainingSeconds = getTrialDuration(currentTrialName);
-                if (remainingSeconds > 0) {
-                    startCountdown();
-                }
-                
-                updateButtonStates();
-            }
-            
-            function startCountdown() {
-                activeSelectionDisplay.classList.add('timer-active');
-                selectionHeader.textContent = "Time Remaining";
-                countdownDisplay.classList.remove('hidden');
-                countdownDisplay.textContent = formatTime(remainingSeconds);
-                timerInterval = setInterval(() => {
-                    remainingSeconds--;
-                    countdownDisplay.textContent = formatTime(remainingSeconds);
-                    if (remainingSeconds <= 0) {
-                        clearInterval(timerInterval);
-                        playBeep();
-                        handleStop();
-                    }
-                }, 1000);
-            }
-            
-            function handleStop() {
-                clearInterval(timerInterval);
-                isTiming = false;
-                
-                activeSelectionDisplay.classList.remove('timer-active');
-                selectionHeader.textContent = "Currently Selected";
-                countdownDisplay.classList.add('hidden');
-                logData.push({ 
-                    trial: currentTrialName, 
-                    event: 'Stop', 
-                    notes: '', 
-                    timestamp: new Date().toString() 
-                });
-                renderLog();
-                
-                if (selectedTrialElement) {
-                    const allItems = Array.from(trialList.querySelectorAll('li.trial-item'));
-                    const currentIndex = allItems.indexOf(selectedTrialElement);
-                    if (currentIndex < allItems.length - 1) {
-                        const nextItem = allItems[currentIndex + 1];
-                        nextItem.click();
-                        nextItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                    }
-                }
-                updateButtonStates();
-            }
-            
-            function getLastCompletedTrial() {
-                // Find the last Stop event
-                for (let i = logData.length - 1; i >= 0; i--) {
-                    if (logData[i].event === 'Stop') {
-                        return logData[i].trial;
-                    }
-                }
-                return null;
-            }
-            
-            function handleDiscardLast() {
-                const lastTrial = getLastCompletedTrial();
-                if (!lastTrial) return;
-                
-                discardTrialName.textContent = lastTrial;
-                discardModal.classList.remove('hidden');
-                setTimeout(() => { 
-                    discardModal.classList.remove('opacity-0'); 
-                    discardModalContent.classList.remove('scale-95'); 
-                }, 10);
-            }
-            
-            function confirmDiscardTrial() {
-                const lastTrial = getLastCompletedTrial();
-                if (!lastTrial) return;
-                
-                // Remove all entries for the last completed trial (both Start and Stop)
-                logData = logData.filter(entry => {
-                    // Keep entries that are NOT from the last trial
-                    if (entry.trial !== lastTrial) return true;
-                    
-                    // For the last trial, find the last pair and remove them
-                    const lastStartIndex = logData.map((e, i) => e.trial === lastTrial && e.event === 'Start' ? i : -1).filter(i => i !== -1).pop();
-                    const lastStopIndex = logData.map((e, i) => e.trial === lastTrial && e.event === 'Stop' ? i : -1).filter(i => i !== -1).pop();
-                    
-                    const currentIndex = logData.indexOf(entry);
-                    return currentIndex !== lastStartIndex && currentIndex !== lastStopIndex;
-                });
-                
-                // Simpler approach: just remove the last two entries if they form a Start-Stop pair
-                if (logData.length >= 2) {
-                    const lastEntry = logData[logData.length - 1];
-                    const secondLastEntry = logData[logData.length - 2];
-                    
-                    if (lastEntry.event === 'Stop' && 
-                        secondLastEntry.event === 'Start' && 
-                        lastEntry.trial === secondLastEntry.trial) {
-                        logData.splice(-2, 2);
-                    }
-                }
-                
-                renderLog();
-                cancelDiscardButton.click();
-            }
-            
-            // --- CORE FUNCTIONALITY ---
-            function createTrialItem(name) {
-                const li = document.createElement('li');
-                li.className = 'trial-item p-3 hover:bg-gray-100 cursor-pointer border-b last:border-b-0 select-none';
-                li.textContent = name;
-                li.addEventListener('click', handleTrialClick);
-                return li;
-            }
-            
-            function populateTrialList() {
-                trialList.innerHTML = '';
-                trialNames.forEach(name => trialList.appendChild(createTrialItem(name)));
-                if (trialList.firstChild) trialList.firstChild.click();
-                updateButtonStates();
-            }
-            
-            function renderLog() {
-                logBody.innerHTML = ''; 
-                emptyLogMessage.classList.toggle('hidden', logData.length > 0);
-                exportButton.disabled = logData.length === 0;
-                
-                logData.forEach(entry => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${entry.trial}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm ${entry.event === 'Start' ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}">${entry.event}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${entry.notes || ''}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">${entry.timestamp}</td>
-                    `;
-                    logBody.appendChild(row);
-                });
-                
-                updateButtonStates();
-            }
-            
-            function updateButtonStates() {
-                startButton.disabled = isTiming;
-                stopButton.disabled = !isTiming;
-                trialList.classList.toggle('opacity-50', isTiming);
-                trialList.classList.toggle('pointer-events-none', isTiming);
-                notesInput.disabled = isTiming;
-                editModeToggle.disabled = isTiming;
-                
-                // Discard button should be enabled only if there's a completed trial (with Stop event)
-                const hasCompletedTrial = logData.some(entry => entry.event === 'Stop');
-                discardLastButton.disabled = !hasCompletedTrial || isTiming;
-            }
-            
-            // --- INITIALIZATION ---
-            setInterval(updateClock, 1000);
-            updateClock();
-            populateTrialList();
-            sortableInstance = new Sortable(trialList, {
-                animation: 150,
-                ghostClass: 'sortable-ghost',
-                disabled: true,
-                onEnd: () => {
-                    trialNames = Array.from(trialList.querySelectorAll('li')).map(li => li.textContent);
-                }
+            trialList.appendChild(li);
+        });
+        updateActiveDisplay();
+    }
+
+    function handleClick(e) {
+        if (isTiming) return;
+        const li = e.currentTarget;
+        if (selectedEl) selectedEl.classList.remove('selected');
+        selectedEl = li;
+        selectedEl.classList.add('selected');
+        updateActiveDisplay();
+    }
+
+    function updateActiveDisplay() {
+        if (selectedEl) {
+            $('activeSelectionText').textContent = stepBidsName({ label: selectedEl.dataset.label });
+        } else {
+            $('activeSelectionText').textContent = '—';
+        }
+    }
+
+    /* =====================================================================
+       MED BACKGROUND TIMER
+    ====================================================================== */
+    function startMedTimer() {
+        medTimerRunning = true;
+        medTimerStart   = new Date();
+        medIngestionTime = medTimerStart;
+        $('medTimerBanner').classList.remove('hidden');
+        $('medTimerStart').textContent = 'Started: ' + fmtTime(medTimerStart);
+        medTimerInterval = setInterval(tickMedTimer, 1000);
+        // Log the medication intake event
+        logEntry({
+            bidsName: stepBidsName({ label: 'med-intake' }),
+            modality: '—',
+            event:    'Med Intake Start',
+            notes:    $('notesInput').value,
+        });
+    }
+
+    function tickMedTimer() {
+        const elapsed = Math.floor((Date.now() - medTimerStart.getTime()) / 1000);
+        $('medTimerDisplay').textContent = fmtElapsed(elapsed);
+    }
+
+    /* =====================================================================
+       AUDIO ENGINE — single shared AudioContext, resumed on first gesture
+    ====================================================================== */
+    let _audioCtx = null;
+    function getAudioCtx() {
+        if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (_audioCtx.state === 'suspended') _audioCtx.resume();
+        return _audioCtx;
+    }
+    document.addEventListener('click', () => getAudioCtx(), { once: true });
+
+    function playTune(notes) {
+        try {
+            const ctx = getAudioCtx();
+            const now = ctx.currentTime;
+            notes.forEach(([freq, offset, dur, vol]) => {
+                const osc  = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, now + offset);
+                gain.gain.setValueAtTime(0, now + offset);
+                gain.gain.linearRampToValueAtTime(vol, now + offset + 0.02);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + offset + dur);
+                osc.start(now + offset);
+                osc.stop(now + offset + dur + 0.05);
             });
-            
-            // --- EVENT LISTENERS ---
-            startButton.addEventListener('click', handleStart);
-            stopButton.addEventListener('click', handleStop);
-            
-            addTagButton.addEventListener('click', () => {
-                const val = customTagInput.value.trim();
-                if (val && !trialNames.includes(val)) {
-                    trialNames.push(val);
-                    const li = createTrialItem(val);
-                    trialList.appendChild(li);
-                    li.click();
-                    customTagInput.value = '';
-                }
-            });
-            
-            removeTagButton.addEventListener('click', () => {
-                if (selectedTrialElement) {
-                    trialNames = trialNames.filter(n => n !== selectedTrialElement.textContent);
-                    selectedTrialElement.remove();
-                    if (trialList.firstChild) trialList.firstChild.click();
-                }
-            });
-            
-            editModeToggle.addEventListener('change', (e) => {
-                sortableInstance.option('disabled', !e.target.checked);
-                trialList.classList.toggle('bg-yellow-50', e.target.checked);
-            });
-            
-            // Discard Last Trial handlers
-            discardLastButton.addEventListener('click', handleDiscardLast);
-            cancelDiscardButton.addEventListener('click', () => {
-                discardModal.classList.add('opacity-0');
-                discardModalContent.classList.add('scale-95');
-                setTimeout(() => discardModal.classList.add('hidden'), 200);
-            });
-            confirmDiscardButton.addEventListener('click', confirmDiscardTrial);
-            
-            // Reset Log handlers
-            resetLogButton.addEventListener('click', () => {
-                confirmationModal.classList.remove('hidden');
-                setTimeout(() => { 
-                    confirmationModal.classList.remove('opacity-0'); 
-                    modalContent.classList.remove('scale-95'); 
-                }, 10);
-            });
-            
-            cancelResetButton.addEventListener('click', () => {
-                confirmationModal.classList.add('opacity-0');
-                modalContent.classList.add('scale-95');
-                setTimeout(() => confirmationModal.classList.add('hidden'), 200);
-            });
-            
-            confirmResetButton.addEventListener('click', () => {
-                logData = [];
-                renderLog();
-                handleStop();
-                cancelResetButton.click();
-            });
-            
-            exportButton.addEventListener('click', () => {
-                let csv = "Trial,Event,Notes,Timestamp\n" + logData.map(e => `${e.trial},${e.event},"${e.notes}","${e.timestamp}"`).join("\n");
-                const blob = new Blob([csv], { type: 'text/csv' });
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.setAttribute('href', url);
-                a.setAttribute('download', 'log.csv');
-                a.click();
+        } catch(e) { console.warn('Audio:', e); }
+    }
+
+    function playTone(freq, duration=0.12, volume=0.08) {
+        playTune([[freq, 0, duration, volume]]);
+    }
+
+    // 2-minute walk complete: bright 3-note ascending ding
+    function playChime() {
+        playTune([
+            [880.00,   0.00, 0.22, 0.45],
+            [1046.50,  0.25, 0.22, 0.45],
+            [1318.51,  0.50, 0.55, 0.40],
+        ]);
+    }
+
+    // 1-hour med period complete: warm 4-note bell phrase
+    function playMedChime() {
+        playTune([
+            [523.25,  0.00, 0.30, 0.50],
+            [659.25,  0.35, 0.30, 0.50],
+            [783.99,  0.70, 0.30, 0.50],
+            [1046.50, 1.05, 0.65, 0.55],
+        ]);
+    }
+
+    function stopMedTimer() {
+        if (!medTimerRunning) return;
+        clearInterval(medTimerInterval);
+        medTimerRunning = false;
+        const elapsed = Math.floor((Date.now() - medTimerStart.getTime()) / 1000);
+        $('medTimerBanner').classList.add('hidden');
+        playMedChime();
+        logEntry({
+            bidsName: stepBidsName({ label: 'med-intake' }),
+            modality: '—',
+            event:    'Med Intake End',
+            notes:    `Duration: ${fmtElapsed(elapsed)}`,
+        });
+    }
+
+    $('stopMedTimerBtn').addEventListener('click', stopMedTimer);
+
+    /* =====================================================================
+       UPDRS MODAL
+    ====================================================================== */
+    function showUpdrsModal() {
+        const now = new Date();
+        $('updrsIntakeTime').textContent = medIngestionTime ? fmtTime(medIngestionTime) : 'Not recorded';
+        $('updrsStartTime').textContent  = fmtTime(now);
+        if (medIngestionTime) {
+            const mins = Math.round((now - medIngestionTime) / 60000);
+            $('updrsResult').textContent = `${mins} min since last dose`;
+        } else {
+            $('updrsResult').textContent = 'Med intake time not available';
+        }
+        $('updrsModal').classList.remove('hidden');
+    }
+
+    $('confirmUpdrsButton').addEventListener('click', () => {
+        $('updrsModal').classList.add('hidden');
+        // Proceed with normal start flow
+        doStart();
+    });
+
+    /* =====================================================================
+       SPECIALIST TIMERS: MRI + PUPILS
+    ====================================================================== */
+    function setupSpecTimer({ startBtn, stopBtn, card, displayEl, runningRef, startRef, intervalRef, secRef, isRunningKey, startKey, intervalKey, secKey, className }) {
+        document.getElementById(startBtn).addEventListener('click', () => {
+            if (window[isRunningKey]) return;
+            window[isRunningKey]  = true;
+            window[startKey]      = new Date();
+            window[secKey]        = 0;
+            document.getElementById(card).classList.add('running');
+            document.getElementById(startBtn).disabled = true;
+            document.getElementById(stopBtn).disabled  = false;
+            document.getElementById(displayEl).textContent = '00:00:00';
+            window[intervalKey] = setInterval(() => {
+                window[secKey]++;
+                document.getElementById(displayEl).textContent = fmtElapsed(window[secKey]);
+            }, 1000);
+            logEntry({
+                bidsName: getBidsPrefix() + '_' + (startBtn === 'mriStartBtn' ? 'mri' : 'pupil') + '-session',
+                modality: startBtn === 'mriStartBtn' ? 'MRI' : 'Pupil',
+                event:    'Start',
+                notes:    '',
             });
         });
-    </script>
+        document.getElementById(stopBtn).addEventListener('click', () => {
+            if (!window[isRunningKey]) return;
+            clearInterval(window[intervalKey]);
+            window[isRunningKey] = false;
+            document.getElementById(card).classList.remove('running');
+            document.getElementById(startBtn).disabled = false;
+            document.getElementById(stopBtn).disabled  = true;
+            logEntry({
+                bidsName: getBidsPrefix() + '_' + (stopBtn === 'mriStopBtn' ? 'mri' : 'pupil') + '-session',
+                modality: stopBtn === 'mriStopBtn' ? 'MRI' : 'Pupil',
+                event:    'Stop',
+                notes:    `Duration: ${fmtElapsed(window[secKey])}`,
+            });
+        });
+    }
+
+    // Use window globals for spec timers to keep code clean
+    window._mriRunning = false; window._mriSec = 0;
+    window._pupilRunning = false; window._pupilSec = 0;
+
+    setupSpecTimer({ startBtn:'mriStartBtn', stopBtn:'mriStopBtn', card:'mriTimerCard', displayEl:'mriTimerDisplay', isRunningKey:'_mriRunning', startKey:'_mriStart', intervalKey:'_mriInterval', secKey:'_mriSec' });
+    setupSpecTimer({ startBtn:'pupilStartBtn', stopBtn:'pupilStopBtn', card:'pupilTimerCard', displayEl:'pupilTimerDisplay', isRunningKey:'_pupilRunning', startKey:'_pupilStart', intervalKey:'_pupilInterval', secKey:'_pupilSec' });
+
+    /* =====================================================================
+       START / STOP
+    ====================================================================== */
+    function handleStart() {
+        if (!selectedEl) return;
+        const isMedTimer = selectedEl.dataset.isMedTimer === '1';
+
+        if (isMedTimer) {
+            startMedTimer();
+            selectedEl.classList.add('done');
+            advanceSelection();
+            return;
+        }
+
+        // UPDRS check
+        if (selectedEl.dataset.label.toLowerCase().includes('updrs') && medIngestionTime) {
+            showUpdrsModal();
+            return;
+        }
+
+        // DUPLICATE CHECK: has this exact task already been fully logged (Start+Stop)?
+        const thisBids = stepBidsName({ label: selectedEl.dataset.label });
+        const alreadyDone = logData.some(e => e.bidsName === thisBids && e.event === 'Stop');
+        if (alreadyDone) {
+            $('duplicateTaskName').textContent = thisBids;
+            $('duplicateModal').classList.remove('hidden');
+            return;
+        }
+
+        // SKIP / OUT-OF-ORDER CHECK
+        const allItems = [...trialList.querySelectorAll('.trial-item:not(.section-header):not(.done)')];
+        if (allItems.length > 0 && allItems[0] !== selectedEl) {
+            const expectedLabel = allItems[0].dataset.label;
+            $('skipTaskName').textContent    = thisBids;
+            $('skipExpectedName').textContent = stepBidsName({ label: expectedLabel });
+            $('skipModal').classList.remove('hidden');
+            return;
+        }
+
+        doStart();
+    }
+
+    function doStart() {
+        playTone(440);  // soft A4 on start
+        isTiming = true;
+        startTimestamp = new Date();
+        currentTrialName = stepBidsName({ label: selectedEl.dataset.label });
+
+        logEntry({
+            bidsName: currentTrialName,
+            modality: selectedEl.dataset.modality || '—',
+            event:    'Start',
+            notes:    $('notesInput').value,
+            syncExpected: selectedEl.dataset.syncExpected === '1',
+        });
+
+        if (parseInt(selectedEl.dataset.dur) > 0) {
+            remaining = parseInt(selectedEl.dataset.dur);
+            startCountdown();
+        }
+        updateUIStates();
+    }
+
+    function startCountdown() {
+        $('activeSelectionDisplay').classList.add('timer-active');
+        $('countdownDisplay').classList.remove('hidden');
+        $('countdownDisplay').textContent = remaining + "s";
+        timerInt = setInterval(() => {
+            remaining--;
+            $('countdownDisplay').textContent = remaining + "s";
+            if (remaining <= 0) { clearInterval(timerInt); playChime(); handleStop(); }
+        }, 1000);
+    }
+
+    function handleStop() {
+        if (!isTiming) return;
+        playTone(330);  // soft E4 on stop
+        clearInterval(timerInt);
+        isTiming = false;
+        $('activeSelectionDisplay').classList.remove('timer-active');
+        $('countdownDisplay').classList.add('hidden');
+
+        const duration = startTimestamp ? Math.round((Date.now() - startTimestamp.getTime()) / 1000) : null;
+
+        logEntry({
+            bidsName: currentTrialName,
+            modality: selectedEl ? (selectedEl.dataset.modality || '—') : '—',
+            event:    'Stop',
+            notes:    $('notesInput').value,
+            duration: duration,
+        });
+
+        if (selectedEl) selectedEl.classList.add('done');
+        advanceSelection();
+        updateUIStates();
+        refreshQC();
+    }
+
+    function advanceSelection() {
+        // Auto-select next non-header non-done item
+        const items = [...trialList.querySelectorAll('.trial-item:not(.section-header):not(.done)')];
+        if (items.length > 0) {
+            if (selectedEl) selectedEl.classList.remove('selected');
+            selectedEl = items[0];
+            selectedEl.classList.add('selected');
+            updateActiveDisplay();
+        }
+    }
+
+    function updateUIStates() {
+        $('startButton').disabled = isTiming;
+        $('stopButton').disabled  = !isTiming;
+        trialList.style.pointerEvents = isTiming ? 'none' : 'auto';
+    }
+
+    /* =====================================================================
+       LOG
+    ====================================================================== */
+    function logEntry(obj) {
+        const entry = {
+            bidsName:  obj.bidsName || '—',
+            modality:  obj.modality || '—',
+            session:   `ses-${currentVisit}`,
+            event:     obj.event,
+            notes:     obj.notes || '',
+            timestamp: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false}),
+            duration:  obj.duration != null ? obj.duration + 's' : '',
+            syncExpected: obj.syncExpected || false,
+        };
+        logData.push(entry);
+        renderLog();
+    }
+
+    let editNoteIndex = null;
+
+    function renderLog() {
+        const logBody = $('logBody');
+        logBody.innerHTML = '';
+        $('emptyLogMessage').style.display = logData.length ? 'none' : 'block';
+        logData.forEach((e, idx) => {
+            const tr = document.createElement('tr');
+            tr.style.cursor = 'pointer';
+            tr.title = 'Click to edit note';
+            const flagBadge = e.flagged ? '<span style="font-size:.6rem;background:var(--orange-lt);color:var(--orange);border:1px solid var(--orange-bd);border-radius:3px;padding:1px 5px;margin-left:4px;">⚠ flagged</span>' : '';
+            const noteDisplay = e.notes
+                ? `<span style="color:var(--text-mid);">${e.notes}</span>`
+                : `<span style="color:#ccc; font-size:.68rem;">+ add note</span>`;
+            tr.innerHTML = `
+                <td>${e.bidsName}${flagBadge}</td>
+                <td>${e.modality}</td>
+                <td>${e.session}</td>
+                <td>${e.event}</td>
+                <td>${noteDisplay}</td>
+                <td>${e.timestamp}</td>
+                <td>${e.duration}</td>`;
+            tr.addEventListener('click', () => openEditNote(idx));
+            logBody.appendChild(tr);
+        });
+        const scroll = logBody.closest('.log-scroll');
+        if (scroll) scroll.scrollTop = scroll.scrollHeight;
+        autoSave();
+    }
+
+    function openEditNote(idx) {
+        editNoteIndex = idx;
+        $('editNoteTask').textContent = `${logData[idx].bidsName} · ${logData[idx].event} · ${logData[idx].timestamp}`;
+        $('editNoteInput').value = logData[idx].notes || '';
+        $('editNoteModal').classList.remove('hidden');
+        setTimeout(() => $('editNoteInput').focus(), 50);
+    }
+
+    /* =====================================================================
+       QC PANEL — task count per block (no modality split)
+    ====================================================================== */
+
+    // Each block: human label + task names to match + expected count
+    const QC_BLOCKS = [
+        { label: 'Giladi Protocol',   tasks: GILADI_TASKS.map(g => g.label),               expected: 8 },
+        { label: 'Continuous Walk',   tasks: ['st2mwalk','dt2mwalk'],                      expected: 2 },
+        { label: 'Augmented Reality', tasks: AR_TASKS.map(a => a.label),                   expected: 6 },
+    ];
+
+    function refreshQC() {
+        const grid = $('qcGrid');
+        const stopEvents = logData.filter(e => e.event === 'Stop');
+
+        grid.innerHTML = '';
+        QC_BLOCKS.forEach(block => {
+            const got = stopEvents.filter(e =>
+                block.tasks.some(t => e.bidsName.includes(`task-${t}`))
+            ).length;
+            const ok      = got >= block.expected;
+            const partial = got > 0 && !ok;
+            const dotClass = ok ? 'ok' : (partial ? 'partial' : 'miss');
+            const div = document.createElement('div');
+            div.className = 'qc-item';
+            div.innerHTML = `
+                <div class="qc-dot ${dotClass}"></div>
+                <span class="qc-label">${block.label}</span>
+                <span class="qc-count">${got} / ${block.expected} tasks</span>`;
+            grid.appendChild(div);
+        });
+    }
+
+    $('refreshQcBtn').addEventListener('click', refreshQC);
+    refreshQC();
+
+    /* =====================================================================
+       CUSTOM TAGS
+    ====================================================================== */
+    $('addTagButton').addEventListener('click', () => {
+        const val = $('customTagInput').value.trim();
+        if (!val) return;
+        protocol.push({ type:'item', label: val, modality:'custom' });
+        populateTrialList();
+        $('customTagInput').value = '';
+    });
+
+    $('removeTagButton').addEventListener('click', () => {
+        if (!selectedEl) return;
+        const idx = parseInt(selectedEl.dataset.idx);
+        if (!isNaN(idx)) {
+            protocol.splice(idx, 1);
+            selectedEl = null;
+            populateTrialList();
+        }
+    });
+
+    /* =====================================================================
+       CONFIG LISTENERS
+    ====================================================================== */
+    $('subjectInput').addEventListener('input', e => {
+        currentSubject = e.target.value;
+        updateBidsUI();
+        populateTrialList();
+    });
+
+    $('visitSelect').addEventListener('change', e => {
+        currentVisit = e.target.value;
+        // Auto-set med state from visit name
+        const inferredState = currentVisit.endsWith('on') ? 'on' : 'off';
+        currentMedState = inferredState;
+        $('stateSelect').value = inferredState;
+        protocol = buildProtocol(currentVisit, currentMedState);
+        populateTrialList();
+        updateBidsUI();
+    });
+
+    $('stateSelect').addEventListener('change', e => {
+        currentMedState = e.target.value;
+        protocol = buildProtocol(currentVisit, currentMedState);
+        populateTrialList();
+        updateBidsUI();
+    });
+
+    // Site buttons
+    document.querySelectorAll('.site-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.site-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentSite = btn.dataset.site;
+            updateBidsUI();
+            populateTrialList();
+        });
+    });
+
+    /* =====================================================================
+       MAIN BUTTONS
+    ====================================================================== */
+    $('startButton').addEventListener('click', handleStart);
+    $('stopButton').addEventListener('click', handleStop);
+
+    /* =====================================================================
+       DISCARD / RESET
+    ====================================================================== */
+    $('discardLastButton').addEventListener('click', () => {
+        if (!logData.length) return;
+        $('discardTrialName').textContent = logData[logData.length-1].bidsName;
+        $('discardModal').classList.remove('hidden');
+    });
+    $('cancelDiscardButton').addEventListener('click', () => $('discardModal').classList.add('hidden'));
+    $('confirmDiscardButton').addEventListener('click', () => {
+        const discarded = logData.pop();
+        renderLog();
+        refreshQC();
+        $('discardModal').classList.add('hidden');
+
+        // Restore the discarded step as selected and un-mark it as done
+        if (discarded) {
+            // Find the trial-item whose bidsName matches the discarded entry
+            const items = [...trialList.querySelectorAll('.trial-item:not(.section-header)')];
+            const match = items.find(li => stepBidsName({ label: li.dataset.label }) === discarded.bidsName);
+            if (match) {
+                // Un-done it
+                match.classList.remove('done');
+                // Re-select it
+                if (selectedEl) selectedEl.classList.remove('selected');
+                selectedEl = match;
+                selectedEl.classList.add('selected');
+                updateActiveDisplay();
+                // Scroll it into view
+                selectedEl.scrollIntoView({ block: 'nearest' });
+            }
+        }
+    });
+
+    $('resetLogButton').addEventListener('click', () => $('confirmationModal').classList.remove('hidden'));
+    $('cancelResetButton').addEventListener('click', () => $('confirmationModal').classList.add('hidden'));
+    $('confirmResetButton').addEventListener('click', () => {
+        logData = [];
+        renderLog();
+        refreshQC();
+        $('confirmationModal').classList.add('hidden');
+    });
+
+    /* =====================================================================
+       EXPORT — with pre-flight checklist
+    ====================================================================== */
+    function doExport() {
+        let csv = "BIDS_Filename,Modality,Session,Event,Notes,Timestamp,Duration\n";
+        logData.forEach(d => {
+            csv += `"${d.bidsName}","${d.modality}","${d.session}","${d.event}","${d.notes}","${d.timestamp}","${d.duration}"\n`;
+        });
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        const sub = padSub(currentSubject);
+        a.download = `AT-sub-${currentSite}${sub}_ses-${currentVisit}_synclog.csv`;
+        a.click();
+    }
+
+    $('exportButton').addEventListener('click', () => {
+        // Build checklist
+        const stopEvents = logData.filter(e => e.event === 'Stop');
+        const body = $('checklistBody');
+        body.innerHTML = '';
+        let allOk = true;
+        QC_BLOCKS.forEach(block => {
+            const got = stopEvents.filter(e => block.tasks.some(t => e.bidsName.includes(`task-${t}`))).length;
+            const ok  = got >= block.expected;
+            if (!ok) allOk = false;
+            const div = document.createElement('div');
+            div.style.cssText = `display:flex;align-items:center;gap:.6rem;padding:.4rem .6rem;border-radius:5px;font-size:.82rem;background:${ok ? 'var(--green-lt)' : 'var(--red-lt)'};border:1px solid ${ok ? 'var(--green-bd)' : 'var(--red-bd)'};`;
+            div.innerHTML = `<span style="font-size:1rem;">${ok ? '✅' : '❌'}</span><span style="flex:1;">${block.label}</span><span style="font-family:'IBM Plex Mono';font-weight:600;">${got} / ${block.expected}</span>`;
+            body.appendChild(div);
+        });
+        if (allOk) {
+            // All complete — export directly
+            doExport();
+        } else {
+            $('checklistModal').classList.remove('hidden');
+        }
+    });
+
+    $('cancelChecklistBtn').addEventListener('click',  () => $('checklistModal').classList.add('hidden'));
+    $('confirmChecklistBtn').addEventListener('click', () => { $('checklistModal').classList.add('hidden'); doExport(); });
+
+    /* =====================================================================
+       AUTO-SAVE to localStorage
+    ====================================================================== */
+    const STORAGE_KEY = 'antifreeze_autosave';
+
+    function autoSave() {
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                logData, currentVisit, currentSite, currentSubject, currentMedState,
+                savedAt: new Date().toLocaleTimeString()
+            }));
+        } catch(e) { /* storage unavailable */ }
+    }
+
+    function tryRestore() {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) return;
+            const saved = JSON.parse(raw);
+            if (!saved.logData || !saved.logData.length) return;
+            if (confirm(`Auto-save found from ${saved.savedAt} (${saved.logData.length} log entries). Restore session?`)) {
+                logData        = saved.logData;
+                currentVisit   = saved.currentVisit   || currentVisit;
+                currentSite    = saved.currentSite    || currentSite;
+                currentSubject = saved.currentSubject || currentSubject;
+                currentMedState= saved.currentMedState|| currentMedState;
+                // Restore UI
+                $('visitSelect').value  = currentVisit;
+                $('stateSelect').value  = currentMedState;
+                $('subjectInput').value = currentSubject;
+                document.querySelectorAll('.site-btn').forEach(b => {
+                    b.classList.toggle('active', b.dataset.site === currentSite);
+                });
+                protocol = buildProtocol(currentVisit, currentMedState);
+                populateTrialList();
+                updateBidsUI();
+                renderLog();
+                refreshQC();
+            }
+        } catch(e) { /* ignore */ }
+    }
+
+    /* =====================================================================
+       MODAL LISTENERS — duplicate, skip, edit note
+    ====================================================================== */
+    $('cancelDuplicateBtn').addEventListener('click',  () => $('duplicateModal').classList.add('hidden'));
+    $('confirmDuplicateBtn').addEventListener('click', () => { $('duplicateModal').classList.add('hidden'); doStart(); });
+
+    $('cancelSkipBtn').addEventListener('click',  () => $('skipModal').classList.add('hidden'));
+    $('confirmSkipBtn').addEventListener('click', () => { $('skipModal').classList.add('hidden'); doStart(); });
+
+    $('cancelEditNoteBtn').addEventListener('click', () => $('editNoteModal').classList.add('hidden'));
+    $('confirmEditNoteBtn').addEventListener('click', () => {
+        if (editNoteIndex !== null) {
+            logData[editNoteIndex].notes = $('editNoteInput').value.trim();
+            renderLog();
+        }
+        $('editNoteModal').classList.add('hidden');
+    });
+
+    // Also clear autosave on reset
+    const origReset = $('confirmResetButton').onclick;
+    $('confirmResetButton').addEventListener('click', () => {
+        try { localStorage.removeItem('antifreeze_autosave'); } catch(e) {}
+    });
+
+    /* =====================================================================
+       CLOCK & HELPERS
+    ====================================================================== */
+    setInterval(() => $('realTimeClock').textContent = new Date().toLocaleTimeString(), 1000);
+
+    function fmtTime(d) {
+        return d.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false });
+    }
+    function fmtElapsed(s) {
+        const h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60;
+        return [h,m,sec].map(x=>String(x).padStart(2,'0')).join(':');
+    }
+
+    /* =====================================================================
+       INIT
+    ====================================================================== */
+    updateBidsUI();
+    populateTrialList();
+    updateUIStates();
+    tryRestore();
+
+}); // end DOMContentLoaded
+</script>
 </body>
 </html>
