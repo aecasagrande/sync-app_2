@@ -887,8 +887,10 @@ document.addEventListener('DOMContentLoaded', () => {
             syncExpected: selectedEl.dataset.syncExpected === '1',
         });
 
-        if (parseInt(selectedEl.dataset.dur) > 0) {
-            remaining = parseInt(selectedEl.dataset.dur);
+        const durVal = parseInt(selectedEl.dataset.dur);
+        console.log('dur value:', durVal, 'label:', selectedEl.dataset.label);
+        if (durVal > 0) {
+            remaining = durVal;
             startCountdown();
         }
         updateUIStates();
